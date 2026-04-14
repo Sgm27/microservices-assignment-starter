@@ -1,0 +1,20 @@
+graph TB
+    subgraph EntityServices["Entity Service Candidates"]
+      direction TB
+      US["<b>User Service</b><br/>• Tạo user<br/>• Lấy thông tin user"]
+      MS["<b>Movie Service</b><br/>• Liệt kê phim<br/>• Xem chi tiết phim<br/>• Liệt kê ghế theo showtime<br/>• Reserve / Confirm / Release seat"]
+      VS["<b>Voucher Service</b><br/>• Liệt kê voucher<br/>• Validate voucher<br/>• Redeem voucher"]
+    end
+
+    UE(("User<br/>entity"))
+    ME(("Movie /<br/>Showtime /<br/>Seat entity"))
+    VE(("Voucher<br/>entity"))
+
+    UE -. quản lý .-> US
+    ME -. quản lý .-> MS
+    VE -. quản lý .-> VS
+
+    classDef svc fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
+    classDef ent fill:#fff3e0,stroke:#fb8c00,color:#e65100;
+    class US,MS,VS svc;
+    class UE,ME,VE ent;
