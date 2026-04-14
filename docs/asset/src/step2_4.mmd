@@ -1,0 +1,14 @@
+graph TB
+    subgraph TaskService["Task Service Candidate (Saga Orchestrator)"]
+      BS["<b>Booking Service</b><br/>• Reserve ghế<br/>• Validate voucher<br/>• Tạo payment<br/>• Persist booking<br/>• Poll payment status<br/>• Confirm ghế + redeem + notify<br/>• Compensation: release + cancel"]
+    end
+
+    BS -- "reserve / confirm / release seat" --> MS["Movie Service"]
+    BS -- "validate / redeem voucher" --> VS["Voucher Service"]
+    BS -- "create + poll payment" --> PS["Payment Service"]
+    BS -- "send email" --> NS["Notification Service"]
+
+    classDef task fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    classDef svc fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
+    class BS task;
+    class MS,VS,PS,NS svc;
