@@ -1,0 +1,28 @@
+flowchart TD
+    A[Nhận HTTP request] --> B{Endpoint?}
+
+    B -->|POST /auth/register| R1{Email đã tồn tại<br/>trong auth_users?}
+    R1 -->|Có| R2[Return 409 Conflict]
+    R1 -->|Không| R3[Hash password bcrypt]
+    R3 --> R4[Insert AuthUser]
+    R4 --> R5[Issue JWT HS256]
+    R5 --> R6[Return 201 + token]
+
+    B -->|POST /auth/login| L1{Verify email + password?}
+    L1 -->|Không hợp lệ| L2[Return 401 Unauthorized]
+    L1 -->|Hợp lệ| L3[Issue JWT HS256]
+    L3 --> L4[Return 200 + token]
+
+    B -->|POST /auth/verify| V1[Decode JWT]
+    V1 --> V2{Chữ ký và<br/>exp hợp lệ?}
+    V2 -->|Không| V3[Return 401]
+    V2 -->|Có| V4[Return 200 + claims]
+
+    classDef start fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
+    classDef decision fill:#fff3e0,stroke:#fb8c00,color:#e65100;
+    classDef action fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
+    classDef error fill:#ffebee,stroke:#e53935,color:#b71c1c;
+    class A start;
+    class B,R1,L1,V2 decision;
+    class R3,R4,R5,R6,L3,L4,V1,V4 action;
+    class R2,L2,V3 error;
