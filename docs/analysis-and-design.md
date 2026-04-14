@@ -1,256 +1,300 @@
-# Analysis and Design — Step-by-Step Action Approach
+# Analysis and Design — Business Process Automation Solution
 
-> **Goal**: Analyze a specific business process and design a service-oriented automation solution (SOA/Microservices).
-> **Scope**: 4–6 week assignment — focus on **one business process**, not an entire system.
->
-> **Alternative to**: [`analysis-and-design-ddd.md`](analysis-and-design-ddd.md) (Domain-Driven Design approach).
-> Choose **one** approach, not both. Use this if your team prefers discovering service boundaries through **decomposing concrete actions** rather than domain modeling.
+> **Goal**: Phân tích một business process cụ thể và thiết kế giải pháp tự động hoá hướng dịch vụ (SOA/Microservices).
+> **Scope**: Assignment 4–6 tuần — tập trung vào **một business process**, không phải toàn bộ hệ thống.
 
 **References:**
+
 1. *Service-Oriented Architecture: Analysis and Design for Services and Microservices* — Thomas Erl (2nd Edition)
 2. *Microservices Patterns: With Examples in Java* — Chris Richardson
 3. *Bài tập — Phát triển phần mềm hướng dịch vụ* — Hung Dang (available in Vietnamese)
 
 ---
 
-### How Step-by-Step Action differs from DDD
+## 1. 🎯 Problem Statement
 
-| | Step-by-Step Action (this document) | DDD |
-|---|---|---|
-| **Thinking direction** | Bottom-up: actions → group → service | Dual: top-down framing + bottom-up Event Storming |
-| **Service boundary decided by** | Similarity of actions/functions | Semantic boundary of business domain |
-| **Best suited for** | Small–medium systems, clearer technical scope | Complex business logic, multiple subdomains |
-| **Key risk** | Services may be fragmented by technical logic | Requires deep domain understanding upfront |
-
-Both approaches lead to a list of services with clear responsibilities. This approach is more structured and mechanical — useful when your team understands *what the system does* better than *what the business domain is*.
-
-### Progression Overview
-
-| Step | What you do | Output |
-|------|------------|--------|
-| **1.1** | Define the Business Process | Process diagram, actors, scope |
-| **1.2** | Survey existing systems | System inventory |
-| **1.3** | State non-functional requirements | NFR table |
-| **2.1–2.2** | Decompose process & filter unsuitable actions | Filtered action list |
-| **2.3** | Group reusable actions → Entity Service Candidates | Entity service table |
-| **2.4** | Group process-specific actions → Task Service Candidate | Task service table |
-| **2.5** | Map entities to REST Resources | Resource URI table |
-| **2.6** | Associate capabilities with resources and HTTP methods | **Service capabilities → API endpoints** |
-| **2.7** | Identify cross-cutting / high-autonomy candidates | Utility / Microservice Candidates |
-| **2.8** | Show how services collaborate | Service composition diagram |
-| **3.1** | Specify service contracts | OpenAPI endpoint tables |
-| **3.2** | Design internal service logic | Flowchart per service |
-
----
-
-## Part 1 — Analysis Preparation
-
-### 1.1 Business Process Definition
-
-Describe the **one** business process your team will automate. Keep scope realistic for 4–6 weeks.
-
-- **Domain**: *(e.g., Online Food Delivery, University Course Registration, ...)*
-- **Business Process**: *(e.g., "Customer places an order and receives delivery")*
-- **Actors**: *(e.g., Customer, Restaurant Owner, Delivery Driver)*
-- **Scope**: *(e.g., "From order placement to delivery confirmation — excluding payment settlement")*
+- **Domain**: Entertainment — Cinema Booking
+- **Problem**: Quy trình đặt vé xem phim truyền thống có các điểm đau:
+    - Khách hàng phải đến rạp để mua vé hoặc gọi điện đặt chỗ thủ công.
+    - Không có cơ chế giữ ghế tạm thời khi khách đang thanh toán → race condition (nhiều người chọn cùng một ghế).
+    - Thanh toán và xác nhận ghế tách rời, dễ xảy ra case đã trừ tiền nhưng chưa giữ được ghế, hoặc ngược lại.
+    - Không có cơ chế tự động release ghế khi thanh toán thất bại hoặc bỏ dở giữa chừng.
+    - **Mục tiêu**: Tự động hoá toàn bộ quy trình **Đặt vé xem phim online**, từ lúc chọn phim/suất chiếu/ghế đến khi xác nhận vé và gửi thông báo, đảm bảo consistency giữa ghế và thanh toán.
+- **Users/Actors**: Khách hàng (customer)
+- **Scope**:
+    - In scope:
+        - Xác thực người dùng: đăng ký, đăng nhập, lấy thông tin tài khoản.
+        - Duyệt phim và suất chiếu: xem danh sách phim, chi tiết phim, suất chiếu, ghế còn trống.
+        - Giữ ghế tạm thời (PENDING) trong khi thanh toán.
+        - Áp mã giảm giá: lấy danh sách voucher, validate, áp dụng vào giá vé.
+        - Tích hợp thanh toán: khởi tạo giao dịch (mock hoặc VNPay), xử lý callback/IPN.
+        - Xác nhận ghế (BOOKED) + gửi email thông báo khi thanh toán thành công.
+        - Compensation (release ghế) khi thanh toán thất bại hoặc timeout.
+    - Out of scope:
+        - Quản lý rạp/phòng chiếu (cinema management): thêm/xoá rạp, bố trí phòng, sơ đồ ghế phức tạp.
+        - Content/media: trailer phim, đánh giá/review, bình luận.
+        - Báo cáo doanh thu chuyên sâu, tích hợp kế toán.
+        - Chương trình khách hàng thân thiết (loyalty), tích điểm.
 
 **Process Diagram:**
 
-*(Insert BPMN, flowchart, or image into `docs/asset/` and reference here)*
-
-> 💡 **Tip:** A good scope for this assignment is a process with 5–15 steps and 2–4 actors. If your process has more than 20 steps, narrow the scope.
+> ![flowchart](asset/flowchart.png)
+>
+> *(Placeholder — nhóm tự tạo flowchart.)*
 
 ### 1.2 Existing Automation Systems
 
-List existing systems, databases, or legacy logic related to this process.
-
 | System Name | Type | Current Role | Interaction Method |
-|-------------|------|--------------|-------------------|
-|             |      |              |                   |
-
-> If none exist, state: *"None — the process is currently performed manually."*
+|-------------|------|--------------|--------------------|
+| Identity Management | Legacy Service | Quản lý định danh khách hàng, cấp và verify JWT. | JWT qua HTTP headers. |
+| Movie Catalog DB | Database | Lưu thông tin tĩnh về phim, suất chiếu, sơ đồ ghế. | Read-only access qua service adapter. |
+| Voucher Metadata DB | Database | Lưu voucher (code, discount_percentage, expires_at, max_uses). | Read qua service adapter. |
+| Payment Gateway (VNPay) | External System | Xử lý luồng tiền thực tế, cung cấp bảo mật giao dịch. | REST API + IPN/return URL. |
+| Mail Gateway | External/Legacy | Gửi email xác nhận vé. SMTP hoặc SendGrid/Twilio. | SMTP hoặc REST API. |
 
 ### 1.3 Non-Functional Requirements
 
-Non-functional requirements serve as input in two places:
-- **2.7** — justifying Utility Service and Microservice Candidates
-- **`docs/architecture.md` Section 1** — justifying architectural pattern choices (e.g., high availability → Circuit Breaker, scalability → Database per Service)
-
-| Requirement    | Description |
-|----------------|-------------|
-| Performance    |             |
-| Security       |             |
-| Scalability    |             |
-| Availability   |             |
+| Requirement | Description |
+|-------------|-------------|
+| Performance | Reserve ghế phải trong < 500ms; xử lý callback thanh toán và cấp vé < 2–3 giây. Tránh lock lâu trên seat table. |
+| Consistency | Không được có tình trạng trừ tiền mà ghế không được giữ, hoặc giữ ghế mà không thanh toán. Saga orchestration đảm bảo eventual consistency. |
+| Security | Bảo mật JWT, validate VNPay IPN bằng checksum, không log PII (số thẻ). |
+| Scalability | Horizontal scaling từng service; Temporal worker scale riêng theo tải booking. |
+| Availability | Uptime ≥ 99.9% cho luồng đặt vé; compensation tự động khi service phụ thuộc down. |
 
 ---
 
-## Part 2 — REST/Microservices Modeling
+## 2. 🧩 Service-Oriented Analysis
 
-### 2.1 Decompose Business Process & 2.2 Filter Unsuitable Actions
+### 2.1 & 2.2 Decompose Business Process & Filter Unsuitable Actions
 
-Decompose the process from 1.1 into granular actions. Mark actions unsuitable for service encapsulation.
+| Step | Activity | Actor | Description | Suitable? |
+|------|----------|-------|-------------|-----------|
+| 1 | Duyệt phim | Khách hàng | Khách hàng chọn phim từ danh sách. | ❌ |
+| 2 | Lấy chi tiết phim + suất chiếu | Hệ thống | Trả phim + các showtime đang mở bán. | ✅ |
+| 3 | Chọn suất chiếu | Khách hàng | Khách hàng chọn một showtime. | ❌ |
+| 4 | Lấy danh sách ghế | Hệ thống | Trả toàn bộ ghế của showtime kèm trạng thái. | ✅ |
+| 5 | Chọn ghế | Khách hàng | Khách hàng chọn một hoặc nhiều ghế AVAILABLE. | ❌ |
+| 6 | Xác thực đăng nhập | Hệ thống | Verify JWT từ gateway; nếu thiếu/hết hạn → yêu cầu đăng nhập. | ✅ |
+| 7 | (Tuỳ chọn) Áp voucher | Khách hàng | Khách hàng nhập mã voucher. | ❌ |
+| 8 | Validate voucher | Hệ thống | Kiểm tra voucher hợp lệ, tính discount_amount. | ✅ |
+| 9 | Reserve ghế (giữ tạm) | Hệ thống | Chuyển ghế AVAILABLE → PENDING trong transaction; fail nếu không còn available. | ✅ |
+| 10 | Tạo payment record | Hệ thống | Tạo payment status PENDING, lấy payment_url. | ✅ |
+| 11 | Persist booking AWAITING_PAYMENT | Hệ thống | Lưu booking record với status AWAITING_PAYMENT + workflow_id. | ✅ |
+| 12 | Điều hướng thanh toán | Hệ thống | Redirect khách sang payment_url (mock page hoặc VNPay sandbox). | ✅ |
+| 13 | Thanh toán | Khách hàng | Khách hàng thanh toán trên cổng (hoặc mock confirm). | ❌ |
+| 14 | Nhận kết quả thanh toán | Hệ thống | Payment service nhận IPN/return hoặc mock confirm → cập nhật status SUCCESS/FAILED. | ✅ |
+| 15 | Workflow polling | Hệ thống | Temporal `BookingWorkflow` poll payment status đến SUCCESS/FAILED/timeout 5m. | ✅ |
+| 16 | Confirm ghế (BOOKED) | Hệ thống | Khi payment SUCCESS: chuyển PENDING → BOOKED. | ✅ |
+| 17 | Redeem voucher | Hệ thống | Tăng used_count của voucher. | ✅ |
+| 18 | Gửi thông báo | Hệ thống | Gửi email xác nhận vé qua NotificationService. | ✅ |
+| 19 | Booking ACTIVE | Hệ thống | Chuyển booking → ACTIVE. | ✅ |
+| 20 | Compensation | Hệ thống | Khi payment FAILED/timeout: release ghế (PENDING → AVAILABLE), booking → CANCELLED. | ✅ |
+| 21 | Kết thúc | Hệ thống | Trả kết quả cho khách hàng. | ❌ |
 
-> 💡 **How to do it:** Walk through your process diagram step by step. For each step, write one or more actions the system needs to perform. Then ask: *"Can this action be encapsulated as a reusable service call?"* If it requires irreducible human judgment or is a one-time manual task, mark it ❌.
-
-| # | Action | Actor | Description | Suitable? |
-|---|--------|-------|-------------|-----------|
-| *(e.g., 1)* | *(e.g., SubmitOrder)* | *(e.g., Customer)* | *(e.g., Customer submits order with items and delivery address)* | ✅ |
-| *(e.g., 2)* | *(e.g., Taste-test food)* | *(e.g., Chef)* | *(e.g., Chef manually approves dish quality)* | ❌ |
-|   |        |       |             | ✅ / ❌    |
-
-> ⚠️ **Common mistake:** Marking everything ✅ or ❌. A typical 10-step process has 1–3 unsuitable actions. If you have none, reconsider whether any step truly requires human judgment.
-
-> Actions marked ❌ are excluded from further steps. Document the reason in the Description column.
+> Các step ❌: mang tính thủ công / tương tác người dùng, không encapsulate thành service được.
 
 ### 2.3 Entity Service Candidates
 
-Identify business entities and group reusable (agnostic) actions into Entity Service Candidates.
-
-> 💡 **How to do it:** Look at the ✅ actions from 2.1–2.2. Ask: *"Which business entity does this action primarily read or modify?"* Actions that operate on the same entity are grouped together. Each group becomes an **Entity Service Candidate**.
->
-> An action is **agnostic** (entity-level) if it is potentially reusable across multiple business processes — e.g., "GetCustomer" could be called from order, support, and billing processes.
-
 | Entity | Service Candidate | Agnostic Actions |
 |--------|-------------------|------------------|
-| *(e.g., Order)* | *(e.g., order-service)* | *(e.g., CreateOrder, GetOrder, CancelOrder)* |
-| *(e.g., Customer)* | *(e.g., customer-service)* | *(e.g., GetCustomer, UpdateCustomerAddress)* |
-|        |                   |                  |
+| User | User Service | Tạo user, lấy thông tin user. |
+| Movie / Showtime / Seat | Movie Service | Liệt kê phim, xem chi tiết, liệt kê ghế, reserve/confirm/release ghế. |
+| Voucher | Voucher Service | Liệt kê voucher, validate, redeem. |
 
-> ⚠️ **Common mistake:** Putting all actions under one "business-service". If your Entity column has only one row, re-examine whether your actions actually span multiple entities.
+> ![Entity Service Candidates](asset/step2_3.png)
+>
+> *(Placeholder — nhóm tự tạo diagram.)*
 
 ### 2.4 Task Service Candidate
 
-Group process-specific (non-agnostic) actions into a Task Service Candidate.
-
-> 💡 **How to do it:** From the ✅ actions in 2.1–2.2, find the ones that are **specific to this business process** and orchestrate multiple entities — they are not reusable on their own. These belong in a Task Service, which acts as the process orchestrator.
-
-| Non-agnostic Action | Task Service Candidate |
+| Non-agnostic Actions | Task Service Candidate |
 |---------------------|------------------------|
-| *(e.g., ProcessOrderCheckout)* | *(e.g., checkout-service)* |
-|                     |                        |
+| 1. Reserve ghế<br>2. Validate voucher<br>3. Tạo payment record<br>4. Persist booking AWAITING_PAYMENT<br>5. Poll payment status (Temporal workflow)<br>6. Confirm ghế + redeem voucher + gửi notification<br>7. Compensation (release ghế + cancel booking) | **Booking Service (Saga Orchestrator)** |
 
-> 💡 **Rule of thumb:** A Task Service typically calls two or more Entity Services in sequence to complete one business process step. If an action only touches one entity, it likely belongs in an Entity Service instead.
+> ![Task Service Candidate](asset/step2_4.png)
+>
+> *(Placeholder — nhóm tự tạo diagram.)*
 
 ### 2.5 Identify Resources
 
-Map entities/processes to REST URI Resources.
-
-> 💡 **How to do it:** For each Entity Service from 2.3, define the primary REST resource URI. Resources are plural nouns, not verbs. The URI represents a collection or a single item in that collection.
+- `/auth/`
+- `/users/`
+- `/movies/`, `/showtimes/`, `/seats/`
+- `/vouchers/`
+- `/bookings/`
+- `/payments/`
+- `/notifications/`
 
 | Entity / Process | Resource URI |
 |------------------|--------------|
-| *(e.g., Order)* | *(e.g., /orders, /orders/{id})* |
-| *(e.g., Customer)* | *(e.g., /customers, /customers/{id})* |
-|                  |              |
-
-> ⚠️ **Common mistake:** Using verbs in URIs (e.g., `/createOrder`). REST resources are nouns — the HTTP method (GET/POST/PUT/DELETE) expresses the action.
+| User | `/users/` |
+| Movie | `/movies/` |
+| Showtime | `/showtimes/` |
+| Seat | `/seats/` |
+| Voucher | `/vouchers/` |
+| Booking | `/bookings/` |
+| Payment | `/payments/` |
+| Notification | `/notifications/` |
 
 ### 2.6 Associate Capabilities with Resources and Methods
 
-> 💡 **How to do it:** For each service capability (action from 2.3–2.4), map it to a resource URI from 2.5 and the appropriate HTTP method. This table directly produces your API endpoint list for Part 3.
-
 | Service Candidate | Capability | Resource | HTTP Method |
 |-------------------|------------|----------|-------------|
-| *(e.g., order-service)* | *(e.g., CreateOrder)* | *(e.g., /orders)* | *(e.g., POST)* |
-| *(e.g., order-service)* | *(e.g., GetOrder)* | *(e.g., /orders/{id})* | *(e.g., GET)* |
-| *(e.g., order-service)* | *(e.g., CancelOrder)* | *(e.g., /orders/{id})* | *(e.g., DELETE)* |
-|                   |            |          |             |
-
-> ⚠️ **Check:** Every ✅ action from 2.1–2.2 should appear in this table as a Capability. If an action is missing, trace back to 2.3–2.5 and add it.
+| Auth Service | Register | `/auth/register` | POST |
+| Auth Service | Login | `/auth/login` | POST |
+| Auth Service | Verify JWT | `/auth/verify` | POST |
+| User Service | Tạo user | `/users` | POST |
+| User Service | Lấy user theo id | `/users/{id}` | GET |
+| Movie Service | Liệt kê phim | `/movies` | GET |
+| Movie Service | Chi tiết phim | `/movies/{id}` | GET |
+| Movie Service | Liệt kê ghế theo showtime | `/showtimes/{id}/seats` | GET |
+| Movie Service | Reserve ghế | `/seats/reserve` | POST |
+| Movie Service | Confirm ghế | `/seats/confirm` | POST |
+| Movie Service | Release ghế | `/seats/release` | POST |
+| Voucher Service | Validate voucher | `/vouchers/validate` | POST |
+| Voucher Service | Redeem voucher | `/vouchers/redeem` | POST |
+| Booking Service | Tạo booking | `/bookings` | POST |
+| Booking Service | Xem booking | `/bookings/{id}` | GET |
+| Booking Service | Cancel booking | `/bookings/{id}/cancel` | POST |
+| Payment Service | Tạo payment | `/payments/create` | POST |
+| Payment Service | Xem payment | `/payments/{id}` | GET |
+| Payment Service | VNPay return/IPN | `/payments/vnpay-return` | GET |
+| Notification Service | Gửi notification | `/notifications/send` | POST |
 
 ### 2.7 Utility Service & Microservice Candidates
 
-Based on Non-Functional Requirements (1.3) and Processing Requirements, identify cross-cutting utility logic or logic requiring high autonomy/performance.
-
-> 💡 **How to do it:** Look at your NFRs from 1.3. Ask:
-> - *"Is there a concern (e.g., authentication, logging, notifications) that appears across multiple services?"* → **Utility Service**
-> - *"Is there a capability that must scale independently or tolerate failure in isolation?"* → **Microservice Candidate** (extract from Entity/Task service)
-
-| Candidate | Type (Utility / Microservice) | Justification (link to NFR or process requirement) |
-|-----------|-------------------------------|-----------------------------------------------------|
-| *(e.g., notification-service)* | *(e.g., Utility)* | *(e.g., NFR: multiple services need to send email/SMS notifications)* |
-| *(e.g., payment-service)* | *(e.g., Microservice)* | *(e.g., NFR: PCI-DSS compliance requires payment logic isolated from other services)* |
-|           |                               |                                                     |
+| Candidate | Type | Justification |
+|-----------|------|---------------|
+| Authentication Service | Utility | Logic verify JWT là cross-cutting, được gateway và indirectly tất cả service khác dựa vào; không chứa logic nghiệp vụ booking. |
+| Notification Service | Utility | Gửi email là tiện ích kỹ thuật, có thể tái sử dụng cho nhiều use case khác (promo, reminder). |
+| Payment Service | Microservice | Tích hợp VNPay (external), bảo mật khắt khe, cần autonomy cao và scale độc lập khi đột biến giao dịch. |
+| Booking Service | Microservice (Orchestrator) | Chứa logic nghiệp vụ chính của luồng đặt vé, điều phối saga qua Temporal workflow; autonomy cao, được thiết kế có compensation rõ ràng. |
 
 ### 2.8 Service Composition Candidates
 
-Interaction diagram showing how Service Candidates collaborate to fulfill the business process.
+Sequence diagram mô tả cách các Service Candidate cộng tác để hoàn thành luồng đặt vé.
 
-> 💡 **How to do it:** Walk through the business process from 1.1 again. For each step, identify which service handles it and what inter-service calls are made. The Task Service (2.4) is typically the orchestrator in the center of the diagram.
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant TaskService
-    participant EntityServiceA
-    participant EntityServiceB
-    participant UtilityService
-
-    Client->>TaskService: (fill in)
-    TaskService->>EntityServiceA: (fill in)
-    EntityServiceA-->>TaskService: (fill in)
-    TaskService->>EntityServiceB: (fill in)
-    EntityServiceB-->>TaskService: (fill in)
-    TaskService-->>Client: (fill in)
-```
-
-> ⚠️ **Check:** Compare this diagram with your process diagram in 1.1. Every step in the business process should be handled by at least one service. If a step is not covered, you may be missing a service candidate.
+> ![SequenceDiagram](asset/sequenceDiagram.jpg)
+>
+> *(Placeholder — nhóm tự tạo diagram.)*
 
 ---
 
 ## Part 3 — Service-Oriented Design
 
-> Part 3 is the **convergence point** — regardless of whether you used Step-by-Step Action or DDD in Part 2, the outputs here are the same: service contracts and service logic.
-
 ### 3.1 Uniform Contract Design
 
-Service Contract specification for each service. Full OpenAPI specs:
-- [`docs/api-specs/service-a.yaml`](api-specs/service-a.yaml)
-- [`docs/api-specs/service-b.yaml`](api-specs/service-b.yaml)
+Service contract cho từng service. Full OpenAPI specs:
 
-> 💡 **Derive from 2.6:** Each row in the capability table (2.6) maps directly to one API endpoint here. The Service Candidate column tells you which service owns it.
+- [`docs/api-specs/AuthenticationService.yaml`](api-specs/AuthenticationService.yaml)
+- [`docs/api-specs/UserService.yaml`](api-specs/UserService.yaml)
+- [`docs/api-specs/MovieService.yaml`](api-specs/MovieService.yaml)
+- [`docs/api-specs/VoucherService.yaml`](api-specs/VoucherService.yaml)
+- [`docs/api-specs/BookingService.yaml`](api-specs/BookingService.yaml)
+- [`docs/api-specs/PaymentService.yaml`](api-specs/PaymentService.yaml)
+- [`docs/api-specs/NotificationService.yaml`](api-specs/NotificationService.yaml)
 
-**Service A — *(service name)*:**
+#### **Authentication Service**
 
-| Endpoint | Method | Description | Request Body | Response Codes |
-|----------|--------|-------------|--------------|----------------|
-|          |        |             |              |                |
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/auth/register` | POST | `application/json` | 201 Created, 400 Bad Request, 409 Conflict, 500 Internal Server Error |
+| `/auth/login` | POST | `application/json` | 200 OK, 401 Unauthorized, 500 Internal Server Error |
+| `/auth/verify` | POST | `application/json` | 200 OK, 401 Unauthorized |
+| `/health` | GET | `text/plain` | 200 OK |
 
-**Service B — *(service name)*:**
+#### **User Service**
 
-| Endpoint | Method | Description | Request Body | Response Codes |
-|----------|--------|-------------|--------------|----------------|
-|          |        |             |              |                |
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/users` | POST | `application/json` | 201 Created, 400 Bad Request, 409 Conflict |
+| `/users` | GET | `application/json` | 200 OK |
+| `/users/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/health` | GET | `text/plain` | 200 OK |
 
-> 💡 **Then:** Update the corresponding OpenAPI YAML files in `docs/api-specs/` to match this table. The YAML is the authoritative contract — the table here is a summary.
+#### **Movie Service**
+
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/movies` | GET | `application/json` | 200 OK |
+| `/movies/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/showtimes/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/showtimes/{id}/seats` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/seats/reserve` | POST | `application/json` | 200 OK, 400 Bad Request, 409 Conflict |
+| `/seats/confirm` | POST | `application/json` | 200 OK, 409 Conflict |
+| `/seats/release` | POST | `application/json` | 200 OK, 409 Conflict |
+| `/health` | GET | `text/plain` | 200 OK |
+
+#### **Voucher Service**
+
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/vouchers` | GET | `application/json` | 200 OK |
+| `/vouchers` | POST | `application/json` | 201 Created, 400 Bad Request, 409 Conflict |
+| `/vouchers/validate` | POST | `application/json` | 200 OK, 400 Bad Request, 404 Not Found |
+| `/vouchers/redeem` | POST | `application/json` | 200 OK, 404 Not Found |
+| `/health` | GET | `text/plain` | 200 OK |
+
+#### **Booking Service**
+
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/bookings` | POST | `application/json` | 200 OK, 400 Bad Request, 409 Conflict, 503 Service Unavailable, 500 Internal Server Error |
+| `/bookings/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/bookings/user/{user_id}` | GET | `application/json` | 200 OK |
+| `/bookings/{id}/cancel` | POST | `application/json` | 200 OK, 404 Not Found, 409 Conflict |
+| `/health` | GET | `text/plain` | 200 OK |
+
+#### **Payment Service**
+
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/payments/create` | POST | `application/json` | 200 OK, 400 Bad Request, 500 Internal Server Error, 503 Service Unavailable |
+| `/payments/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/payments/by-booking/{booking_id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/payments/mock/{id}/confirm` | POST | `application/json` | 200 OK, 404 Not Found |
+| `/payments/mock/{id}/page` | GET | `text/html` | 200 OK |
+| `/payments/vnpay-return` | GET | `application/json` | 200 OK |
+| `/health` | GET | `text/plain` | 200 OK |
+
+#### **Notification Service**
+
+| Endpoint | Method | Media Type | Response Codes |
+|:---|:---|:---|:---|
+| `/notifications/send` | POST | `application/json` | 202 Accepted, 400 Bad Request, 503 Service Unavailable |
+| `/notifications` | GET | `application/json` | 200 OK |
+| `/notifications/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
+| `/health` | GET | `text/plain` | 200 OK |
 
 ### 3.2 Service Logic Design
 
-Internal processing flow for each service.
+Flow nội bộ cho từng service (placeholder — nhóm tự tạo diagram đặt vào `docs/asset/`).
 
-> 💡 **How to do it:** For each service, pick its most important endpoint and draw the internal logic. Focus on: input validation → business rule checks → persistence/external calls → response.
+**Authentication Service:**
 
-**Service A — *(service name)*:**
+> ![AuthenticationService](asset/authen.png)
 
-```mermaid
-flowchart TD
-    A[Receive Request] --> B{Validate input?}
-    B -->|Valid| C{Business rule check?}
-    B -->|Invalid| D[Return 400 Bad Request]
-    C -->|Pass| E[(Persist / Call downstream)]
-    C -->|Fail| F[Return 409 / 422 Error]
-    E --> G[Return 200/201 Response]
-```
+**User Service:**
 
-**Service B — *(service name)*:**
+> ![UserService](asset/user.png)
 
-```mermaid
-flowchart TD
-    A[Receive Request] --> B{Validate input?}
-    B -->|Valid| C{Business rule check?}
-    B -->|Invalid| D[Return 400 Bad Request]
-    C -->|Pass| E[(Persist / Call downstream)]
-    C -->|Fail| F[Return 409 / 422 Error]
-    E --> G[Return 200/201 Response]
-```
+**Movie Service:**
+
+> ![MovieService](asset/MovieService.png)
+
+**Voucher Service:**
+
+> ![VoucherService](asset/VoucherService.png)
+
+**Booking Service:**
+
+> ![BookingService](asset/BookingService.png)
+
+**Payment Service:**
+
+> ![PaymentService](asset/PaymentService.png)
+
+**Notification Service:**
+
+> ![NotificationService](asset/notification.png)
