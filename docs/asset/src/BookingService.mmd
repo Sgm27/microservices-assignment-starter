@@ -1,0 +1,49 @@
+flowchart TD
+    A[POST /bookings] --> B1[Validate input payload]
+    B1 --> B2["GET /showtimes/{id}<br/>→ movieService"]
+    B2 --> B3[POST /seats/reserve<br/>→ movieService]
+    B3 --> B4{Reserve OK?}
+    B4 -->|Không| B5[Return 409<br/>ghế không khả dụng]
+    B4 -->|Có| B6{Có voucher_code?}
+    B6 -->|Có| B7[POST /vouchers/validate<br/>→ voucherService]
+    B6 -->|Không| B8[Skip discount]
+    B7 --> B9[POST /payments/create<br/>→ paymentService]
+    B8 --> B9
+    B9 --> B10[Insert booking<br/>status=AWAITING_PAYMENT]
+    B10 --> B11[Start Temporal BookingWorkflow]
+    B11 --> B12[Return 201<br/>+ payment_url + workflow_id]
+
+    subgraph WF["Temporal Worker: BookingWorkflow"]
+      direction TB
+      W1[Poll check_payment_status<br/>mỗi 5s, tối đa 300s]
+      W1 --> W2{Payment status}
+      W2 -->|SUCCESS| W3[confirm_seats_activity]
+      W3 --> W4[redeem_voucher_activity<br/>nếu có voucher]
+      W4 --> W5[send_notification_activity]
+      W5 --> W6[finalize_booking_activity<br/>→ ACTIVE]
+      W2 -->|FAILED / CANCELLED / timeout| W7[release_seats_activity]
+      W7 --> W8[finalize_booking_activity<br/>→ CANCELLED + reason]
+    end
+    B11 -.->|input| W1
+
+    GQ["GET /bookings/{id}"] --> Q1[SELECT booking]
+    Q1 --> Q2{Tồn tại?}
+    Q2 -->|Không| Q3[Return 404]
+    Q2 -->|Có| Q4[Return 200 + status + workflow_id]
+
+    CN["POST /bookings/{id}/cancel"] --> CN1{Status ∈<br/>AWAITING_PAYMENT / PENDING?}
+    CN1 -->|Không| CN2[Return 409]
+    CN1 -->|Có| CN3[POST /seats/release<br/>→ movieService]
+    CN3 --> CN4[UPDATE booking<br/>status=CANCELLED<br/>reason='cancelled by user']
+    CN4 --> CN5[Return 200]
+
+    classDef start fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
+    classDef decision fill:#fff3e0,stroke:#fb8c00,color:#e65100;
+    classDef action fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
+    classDef error fill:#ffebee,stroke:#e53935,color:#b71c1c;
+    classDef wf fill:#ede7f6,stroke:#5e35b1,color:#311b92;
+    class A,GQ,CN start;
+    class B4,B6,W2,Q2,CN1 decision;
+    class B1,B2,B3,B7,B8,B9,B10,B11,B12,Q1,Q4,CN3,CN4,CN5 action;
+    class W1,W3,W4,W5,W6,W7,W8 wf;
+    class B5,Q3,CN2 error;
