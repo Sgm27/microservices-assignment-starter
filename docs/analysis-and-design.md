@@ -38,9 +38,7 @@
 
 **Process Diagram:**
 
-> ![flowchart](asset/flowchart.png)
->
-> *(Placeholder — nhóm tự tạo flowchart.)*
+<p align="center"><img src="asset/flowchart.png" alt="Business process flowchart" width="350" /></p>
 
 ### 1.2 Existing Automation Systems
 
@@ -102,9 +100,7 @@
 | Movie / Showtime / Seat | Movie Service | Liệt kê phim, xem chi tiết, liệt kê ghế, reserve/confirm/release ghế. |
 | Voucher | Voucher Service | Liệt kê voucher, validate, redeem. |
 
-> ![Entity Service Candidates](asset/step2_3.png)
->
-> *(Placeholder — nhóm tự tạo diagram.)*
+<p align="center"><img src="asset/step2_3.png" alt="Entity Service Candidates" width="550" /></p>
 
 ### 2.4 Task Service Candidate
 
@@ -112,9 +108,7 @@
 |---------------------|------------------------|
 | 1. Reserve ghế<br>2. Validate voucher<br>3. Tạo payment record<br>4. Persist booking AWAITING_PAYMENT<br>5. Poll payment status (Temporal workflow)<br>6. Confirm ghế + redeem voucher + gửi notification<br>7. Compensation (release ghế + cancel booking) | **Booking Service (Saga Orchestrator)** |
 
-> ![Task Service Candidate](asset/step2_4.png)
->
-> *(Placeholder — nhóm tự tạo diagram.)*
+<p align="center"><img src="asset/step2_4.png" alt="Task Service Candidate" width="550" /></p>
 
 ### 2.5 Identify Resources
 
@@ -175,9 +169,7 @@
 
 Sequence diagram mô tả cách các Service Candidate cộng tác để hoàn thành luồng đặt vé.
 
-> ![SequenceDiagram](asset/sequenceDiagram.png)
->
-> *(Placeholder — nhóm tự tạo diagram.)*
+<p align="center"><img src="asset/sequenceDiagram.png" alt="Service composition sequence diagram" width="650" /></p>
 
 ---
 
@@ -269,32 +261,32 @@ Service contract cho từng service. Full OpenAPI specs:
 
 ### 3.2 Service Logic Design
 
-Flow nội bộ cho từng service (placeholder — nhóm tự tạo diagram đặt vào `docs/asset/`).
+Flow nội bộ cho từng service.
 
 **Authentication Service:**
 
-> ![AuthenticationService](asset/authen.png)
+<p align="center"><img src="asset/authen.png" alt="Authentication Service" width="500" /></p>
 
 **User Service:**
 
-> ![UserService](asset/user.png)
+<p align="center"><img src="asset/user.png" alt="User Service" width="500" /></p>
 
 **Movie Service:**
 
-> ![MovieService](asset/MovieService.png)
+<p align="center"><img src="asset/MovieService.png" alt="Movie Service" width="500" /></p>
 
 **Voucher Service:**
 
-> ![VoucherService](asset/VoucherService.png)
+<p align="center"><img src="asset/VoucherService.png" alt="Voucher Service" width="500" /></p>
 
 **Booking Service:**
 
-> ![BookingService](asset/BookingService.png)
+<p align="center"><img src="asset/BookingService.png" alt="Booking Service" width="450" /></p>
 
 **Payment Service:**
 
-> ![PaymentService](asset/PaymentService.png)
+<p align="center"><img src="asset/PaymentService.png" alt="Payment Service" width="500" /></p>
 
 **Notification Service:**
 
-> ![NotificationService](asset/notification.png)
+<p align="center"><img src="asset/notification.png" alt="Notification Service" width="500" /></p>
