@@ -1,0 +1,31 @@
+flowchart TD
+    A[Nhận HTTP request] --> B{Endpoint?}
+
+    B -->|GET /vouchers| L1[Query all vouchers]
+    L1 --> L2[Return 200 + list]
+
+    B -->|POST /vouchers| C1{Code đã tồn tại?}
+    C1 -->|Có| C2[Return 409 Conflict]
+    C1 -->|Không| C3[Insert voucher<br/>used_count = 0]
+    C3 --> C4[Return 201]
+
+    B -->|POST /vouchers/validate| V1{Voucher code tồn tại?}
+    V1 -->|Không| V2[Return 404]
+    V1 -->|Có| V3{expires_at > now<br/>AND used_count &lt; max_uses?}
+    V3 -->|Không| V4[Return 400 invalid]
+    V3 -->|Có| V5[Tính discount_amount<br/>= base_price × discount_pct]
+    V5 --> V6[Return 200 + discount]
+
+    B -->|POST /vouchers/redeem| R1{Voucher code tồn tại?}
+    R1 -->|Không| R2[Return 404]
+    R1 -->|Có| R3[UPDATE used_count = used_count + 1]
+    R3 --> R4[Return 200]
+
+    classDef start fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
+    classDef decision fill:#fff3e0,stroke:#fb8c00,color:#e65100;
+    classDef action fill:#e3f2fd,stroke:#1e88e5,color:#0d47a1;
+    classDef error fill:#ffebee,stroke:#e53935,color:#b71c1c;
+    class A start;
+    class B,C1,V1,V3,R1 decision;
+    class L1,L2,C3,C4,V5,V6,R3,R4 action;
+    class C2,V2,V4,R2 error;
