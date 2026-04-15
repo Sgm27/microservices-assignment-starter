@@ -175,7 +175,7 @@
 
 Sequence diagram mô tả cách các Service Candidate cộng tác để hoàn thành luồng đặt vé.
 
-> ![SequenceDiagram](asset/sequenceDiagram.jpg)
+> ![SequenceDiagram](asset/sequenceDiagram.png)
 >
 > *(Placeholder — nhóm tự tạo diagram.)*
 
