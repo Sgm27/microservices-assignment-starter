@@ -45,6 +45,9 @@ venv/
 .venv/
 env/
 pip-log.txt
+.mypy_cache/
+.ruff_cache/
+.tox/
 
 # Java / Kotlin / Gradle / Maven
 target/

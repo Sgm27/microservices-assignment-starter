@@ -1,0 +1,316 @@
+version: "3.8"
+
+services:
+  # --- Database ---
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: on-failure
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${USER_DB_NAME}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 20s
+      retries: 10
+      start_period: 30s
+    networks:
+      - micro-network
+
+  # --- Temporal (PostgreSQL backend) ---
+  temporal-postgres:
+    image: postgres:15-alpine
+    container_name: temporal-postgres
+    restart: on-failure
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - micro-network
+
+  temporal:
+    image: temporalio/auto-setup:1.24.2
+    container_name: temporal
+    restart: on-failure
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgres
+    ports:
+      - "7233:7233"
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    networks:
+      - micro-network
+
+  temporal-ui:
+    image: temporalio/ui:2.27.1
+    container_name: temporal-ui
+    restart: on-failure
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:5173
+    ports:
+      - "8088:8080"
+    depends_on:
+      - temporal
+    networks:
+      - micro-network
+
+  # --- Auth Service ---
+  auth-service:
+    build: ./services/authService
+    container_name: authService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${AUTH_SERVICE_PORT}:${AUTH_SERVICE_PORT}"
+    environment:
+      PORT: ${AUTH_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${AUTH_DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - micro-network
+
+  # --- User Service ---
+  user-service:
+    build: ./services/userService
+    container_name: userService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${USER_SERVICE_PORT}:${USER_SERVICE_PORT}"
+    environment:
+      PORT: ${USER_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${USER_DB_NAME}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - micro-network
+
+  # --- Movie Service ---
+  movie-service:
+    build: ./services/movieService
+    container_name: movieService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${MOVIE_SERVICE_PORT}:${MOVIE_SERVICE_PORT}"
+    environment:
+      PORT: ${MOVIE_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${MOVIE_DB_NAME}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - micro-network
+
+  # --- Voucher Service ---
+  voucher-service:
+    build: ./services/voucherService
+    container_name: voucherService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${VOUCHER_SERVICE_PORT}:${VOUCHER_SERVICE_PORT}"
+    environment:
+      PORT: ${VOUCHER_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${VOUCHER_DB_NAME}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - micro-network
+
+  # --- Notification Service ---
+  notification-service:
+    build: ./services/notificationService
+    container_name: notificationService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
+    environment:
+      PORT: ${NOTIFICATION_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${NOTIFICATION_DB_NAME}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      EMAIL_MOCK: ${EMAIL_MOCK}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - micro-network
+
+  # --- Payment Service ---
+  payment-service:
+    build: ./services/paymentService
+    container_name: paymentService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${PAYMENT_SERVICE_PORT}:${PAYMENT_SERVICE_PORT}"
+    environment:
+      PORT: ${PAYMENT_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${PAYMENT_DB_NAME}
+      VNPAY_TMN_CODE: ${VNPAY_TMN_CODE}
+      VNPAY_HASH_SECRET: ${VNPAY_HASH_SECRET}
+      VNPAY_PAYMENT_URL: ${VNPAY_PAYMENT_URL}
+      VNPAY_RETURN_URL: ${VNPAY_RETURN_URL}
+      VNPAY_FRONTEND_RETURN_URL: ${VNPAY_FRONTEND_RETURN_URL}
+      PAYMENT_MOCK: ${PAYMENT_MOCK}
+      BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+    networks:
+      - micro-network
+
+  # --- Booking Service (Temporal orchestrator) ---
+  booking-service:
+    build: ./services/bookingService
+    container_name: bookingService
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${BOOKING_SERVICE_PORT}:${BOOKING_SERVICE_PORT}"
+    environment:
+      PORT: ${BOOKING_SERVICE_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${BOOKING_DB_NAME}
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+      MOVIE_SERVICE_URL: ${MOVIE_SERVICE_URL}
+      VOUCHER_SERVICE_URL: ${VOUCHER_SERVICE_URL}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    networks:
+      - micro-network
+
+  # --- Booking Worker (Temporal worker process) ---
+  booking-worker:
+    build: ./services/bookingService
+    container_name: bookingWorker
+    restart: on-failure
+    env_file: .env
+    command: ["python", "-m", "src.worker"]
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${BOOKING_DB_NAME}
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+      MOVIE_SERVICE_URL: ${MOVIE_SERVICE_URL}
+      VOUCHER_SERVICE_URL: ${VOUCHER_SERVICE_URL}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL}
+    depends_on:
+      booking-service:
+        condition: service_started
+      temporal:
+        condition: service_started
+    networks:
+      - micro-network
+
+  # --- API Gateway ---
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    restart: on-failure
+    env_file: .env
+    ports:
+      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
+    environment:
+      PORT: ${GATEWAY_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      USER_SERVICE_URL: ${USER_SERVICE_URL}
+      MOVIE_SERVICE_URL: ${MOVIE_SERVICE_URL}
+      VOUCHER_SERVICE_URL: ${VOUCHER_SERVICE_URL}
+      BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
+      PAYMENT_SERVICE_URL: ${PAYMENT_SERVICE_URL}
+    depends_on:
+      - auth-service
+      - user-service
+      - movie-service
+      - voucher-service
+      - booking-service
+      - payment-service
+    networks:
+      - micro-network
+
+  # --- Frontend ---
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: on-failure
+    ports:
+      - "${FRONTEND_PORT}:5173"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    depends_on:
+      - gateway
+    networks:
+      - micro-network
+
+networks:
+  micro-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  temporal_pg_data:

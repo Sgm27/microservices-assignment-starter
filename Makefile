@@ -1,9 +1,9 @@
 # ============================================
-# Makefile — Common project commands
+# Cinema Ticket Booking — Common project commands
 # Usage: make <target>
 # ============================================
 
-.PHONY: help up down build logs clean init
+.PHONY: help up down build logs clean init test test-service
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -29,7 +29,7 @@ build: ## Rebuild all containers
 logs: ## Tail logs from all services
 	docker compose logs -f
 
-logs-service: ## Tail logs from a specific service (usage: make logs-service s=service-a)
+logs-service: ## Tail logs from a specific service (usage: make logs-service s=auth-service)
 	docker compose logs -f $(s)
 
 clean: ## Remove all containers, volumes, and images
@@ -41,7 +41,11 @@ status: ## Show status of all services
 restart: ## Restart all services
 	docker compose restart
 
-test: ## Run tests (customize per your stack)
-	@echo "Add your test commands here"
-	@echo "Example: docker compose exec service-a npm test"
-	@echo "Example: docker compose exec service-a pytest"
+test: ## Run pytest in all services
+	@for s in authService userService movieService voucherService bookingService paymentService notificationService; do \
+		echo "=== $$s ==="; \
+		(cd services/$$s && python -m pytest -q) || exit 1; \
+	done
+
+test-service: ## Run pytest in one service (usage: make test-service s=authService)
+	cd services/$(s) && python -m pytest -q
