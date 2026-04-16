@@ -1,0 +1,200 @@
+openapi: 3.0.3
+info:
+  title: Voucher Service API
+  description: |
+    Quản lý mã giảm giá: list / create / validate / redeem.
+    Đây là Data Owner của entity Voucher.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5004
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /vouchers:
+    get:
+      summary: Liệt kê tất cả voucher
+      operationId: listVouchers
+      responses:
+        "200":
+          description: Danh sách voucher
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Voucher"
+    post:
+      summary: Tạo voucher mới
+      operationId: createVoucher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoucherCreateRequest"
+      responses:
+        "201":
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Voucher"
+        "409":
+          description: Trùng code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Sai dữ liệu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vouchers/validate:
+    post:
+      summary: Kiểm tra voucher và trả discount_amount
+      operationId: validateVoucher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoucherValidateRequest"
+      responses:
+        "200":
+          description: Voucher hợp lệ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherValidateResponse"
+        "404":
+          description: Voucher không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Voucher đã hết hạn hoặc hết lượt dùng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /vouchers/redeem:
+    post:
+      summary: Tăng used_count khi booking thành công
+      operationId: redeemVoucher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoucherRedeemRequest"
+      responses:
+        "200":
+          description: Redeem thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Voucher"
+        "404":
+          description: Voucher không tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    VoucherCreateRequest:
+      type: object
+      required:
+        - code
+        - discount_percentage
+      properties:
+        code:
+          type: string
+          example: "SUMMER20"
+        discount_percentage:
+          type: number
+          format: double
+          example: 20
+        max_uses:
+          type: integer
+          example: 100
+        expires_at:
+          type: string
+          format: date-time
+
+    VoucherValidateRequest:
+      type: object
+      required:
+        - code
+        - original_price
+      properties:
+        code:
+          type: string
+        original_price:
+          type: number
+          format: double
+
+    VoucherValidateResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: true
+        discount_amount:
+          type: number
+          format: double
+        final_price:
+          type: number
+          format: double
+
+    VoucherRedeemRequest:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+
+    Voucher:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        discount_percentage:
+          type: number
+          format: double
+        max_uses:
+          type: integer
+        used_count:
+          type: integer
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
