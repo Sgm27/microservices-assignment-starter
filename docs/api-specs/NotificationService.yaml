@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Notification Service API
+  description: |
+    Gửi email thông báo (mock trong test/dev, real trong production) cho
+    các sự kiện booking. Đây là Data Owner của entity Notification.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5007
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /notifications/send:
+    post:
+      summary: Tạo notification và gửi email (mock/real)
+      operationId: sendNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NotificationSendRequest"
+      responses:
+        "202":
+          description: Đã chấp nhận và queue gửi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          description: Thiếu hoặc sai tham số
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Mail gateway không khả dụng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /notifications:
+    get:
+      summary: Liệt kê notifications (mới nhất trước)
+      operationId: listNotifications
+      responses:
+        "200":
+          description: Danh sách notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /notifications/{id}:
+    get:
+      summary: Lấy notification theo id
+      operationId: getNotificationById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Notification detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "404":
+          description: Không tìm thấy notification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    NotificationSendRequest:
+      type: object
+      required:
+        - to
+        - subject
+        - body
+      properties:
+        to:
+          type: string
+          format: email
+        subject:
+          type: string
+          example: "Đặt vé thành công"
+        body:
+          type: string
+          example: "Cảm ơn bạn đã đặt vé..."
+        booking_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        to:
+          type: string
+          format: email
+        subject:
+          type: string
+        body:
+          type: string
+        booking_id:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [QUEUED, SENT, FAILED]
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
