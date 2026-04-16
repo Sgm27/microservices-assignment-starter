@@ -1,0 +1,286 @@
+openapi: 3.0.3
+info:
+  title: Movie Service API
+  description: |
+    Quản lý phim, suất chiếu (showtime) và ghế (seat) trong luồng đặt vé.
+    Đây là Data Owner của các entity Movie, Showtime, Seat.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5003
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /movies:
+    get:
+      summary: Liệt kê danh sách phim
+      operationId: listMovies
+      responses:
+        "200":
+          description: Danh sách phim
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Movie"
+
+  /movies/{id}:
+    get:
+      summary: Lấy chi tiết phim kèm suất chiếu lồng bên trong
+      operationId: getMovieById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chi tiết phim + showtimes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MovieDetail"
+        "404":
+          description: Không tìm thấy phim
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /showtimes/{id}:
+    get:
+      summary: Lấy chi tiết showtime kèm thông tin phim tóm tắt
+      operationId: getShowtimeById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Showtime detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShowtimeDetail"
+        "404":
+          description: Không tìm thấy showtime
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /showtimes/{id}/seats:
+    get:
+      summary: Liệt kê ghế của một showtime
+      operationId: listSeatsByShowtime
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Danh sách ghế
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Seat"
+        "404":
+          description: Không tìm thấy showtime
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /seats/reserve:
+    post:
+      summary: Đặt chỗ ghế (AVAILABLE → PENDING)
+      operationId: reserveSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeatActionRequest"
+      responses:
+        "200":
+          description: Reserve thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeatActionResponse"
+        "409":
+          description: Một hoặc nhiều ghế không còn AVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Thiếu hoặc sai tham số
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /seats/confirm:
+    post:
+      summary: Confirm ghế đã reserve (PENDING → BOOKED)
+      operationId: confirmSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeatActionRequest"
+      responses:
+        "200":
+          description: Confirm thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeatActionResponse"
+        "409":
+          description: Ghế không ở trạng thái PENDING
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /seats/release:
+    post:
+      summary: Thả ghế đã reserve (PENDING → AVAILABLE)
+      operationId: releaseSeats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SeatActionRequest"
+      responses:
+        "200":
+          description: Release thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeatActionResponse"
+        "409":
+          description: Ghế không ở trạng thái PENDING
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    Movie:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        genre:
+          type: string
+        duration_minutes:
+          type: integer
+        poster_url:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    MovieDetail:
+      allOf:
+        - $ref: "#/components/schemas/Movie"
+        - type: object
+          properties:
+            showtimes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Showtime"
+
+    Showtime:
+      type: object
+      properties:
+        id:
+          type: string
+        movie_id:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        room:
+          type: string
+        price:
+          type: number
+          format: double
+
+    ShowtimeDetail:
+      allOf:
+        - $ref: "#/components/schemas/Showtime"
+        - type: object
+          properties:
+            movie:
+              $ref: "#/components/schemas/Movie"
+
+    Seat:
+      type: object
+      properties:
+        id:
+          type: string
+        showtime_id:
+          type: string
+        row:
+          type: string
+          example: "A"
+        number:
+          type: integer
+          example: 7
+        status:
+          type: string
+          enum: [AVAILABLE, PENDING, BOOKED]
+
+    SeatActionRequest:
+      type: object
+      required:
+        - showtime_id
+        - seat_ids
+      properties:
+        showtime_id:
+          type: string
+        seat_ids:
+          type: array
+          items:
+            type: string
+
+    SeatActionResponse:
+      type: object
+      properties:
+        showtime_id:
+          type: string
+        seats:
+          type: array
+          items:
+            $ref: "#/components/schemas/Seat"
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
