@@ -1,0 +1,133 @@
+openapi: 3.0.3
+info:
+  title: User Service API
+  description: |
+    Quản lý thông tin hồ sơ khách hàng trong hệ thống đặt vé xem phim.
+    Đây là Data Owner của entity User.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5002
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /users:
+    post:
+      summary: Tạo user mới (có thể truyền explicit id từ authService)
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateRequest"
+      responses:
+        "201":
+          description: Tạo user thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Thiếu hoặc sai dữ liệu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      summary: Liệt kê tất cả user
+      operationId: listUsers
+      responses:
+        "200":
+          description: Danh sách user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      summary: Lấy user theo id
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Không tìm thấy user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    UserCreateRequest:
+      type: object
+      required:
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Optional — explicit id từ authService
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        phone:
+          type: string
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
