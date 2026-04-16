@@ -1,0 +1,247 @@
+openapi: 3.0.3
+info:
+  title: Payment Service API
+  description: |
+    Tạo mock/VNPay payment URL, nhận kết quả thanh toán và expose trạng thái
+    cho booking service polling. Đây là Data Owner của entity Payment.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5006
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /payments/create:
+    post:
+      summary: Tạo payment record + trả payment_url (mock/VNPay)
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentCreateRequest"
+      responses:
+        "200":
+          description: Tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentCreateResponse"
+        "400":
+          description: Thiếu hoặc sai tham số
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Payment gateway không khả dụng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/{id}:
+    get:
+      summary: Xem payment theo id
+      operationId: getPaymentById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Payment detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Không tìm thấy payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/by-booking/{booking_id}:
+    get:
+      summary: Xem payment theo booking_id
+      operationId: getPaymentByBookingId
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Payment detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Không tìm thấy payment cho booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/mock/{id}/confirm:
+    post:
+      summary: Mock — đánh dấu payment là SUCCESS/FAILED (test/dev only)
+      operationId: mockConfirmPayment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MockConfirmRequest"
+      responses:
+        "200":
+          description: Đánh dấu thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "404":
+          description: Không tìm thấy payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/mock/{id}/page:
+    get:
+      summary: HTML page mô phỏng trang thanh toán (mock only)
+      operationId: mockPaymentPage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: HTML trang mock
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /payments/vnpay-return:
+    get:
+      summary: VNPay return/IPN endpoint (skeleton)
+      operationId: vnpayReturn
+      parameters:
+        - name: vnp_TxnRef
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: vnp_ResponseCode
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Xử lý return/IPN
+
+components:
+  schemas:
+    PaymentCreateRequest:
+      type: object
+      required:
+        - booking_id
+        - amount
+      properties:
+        booking_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        method:
+          type: string
+          enum: [MOCK, VNPAY]
+          default: MOCK
+
+    PaymentCreateResponse:
+      type: object
+      properties:
+        payment_id:
+          type: string
+          format: uuid
+        payment_url:
+          type: string
+          example: "http://localhost:5006/payments/mock/abc/page"
+
+    MockConfirmRequest:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: string
+          enum: [SUCCESS, FAILED]
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        booking_id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        method:
+          type: string
+          enum: [MOCK, VNPAY]
+        status:
+          type: string
+          enum: [PENDING, SUCCESS, FAILED]
+        payment_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
