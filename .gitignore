@@ -113,3 +113,6 @@ coverage/
 .pytest_cache/
 htmlcov/
 test-results/
+
+# Service-local virtualenvs (created during local pytest)
+services/*/.venv/
