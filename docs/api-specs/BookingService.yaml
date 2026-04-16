@@ -1,0 +1,236 @@
+openapi: 3.0.3
+info:
+  title: Booking Service API
+  description: |
+    Saga orchestrator cho luồng đặt vé xem phim. Sử dụng Temporal workflow
+    để chờ xác nhận thanh toán và thực hiện compensation (release seats)
+    khi thanh toán thất bại hoặc quá hạn.
+    Đây là Data Owner của entity Booking.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5005
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+
+  /bookings:
+    post:
+      summary: Khởi tạo booking; reserve seats + validate voucher + create payment; trả payment_url
+      operationId: createBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingCreateRequest"
+      responses:
+        "200":
+          description: Khởi tạo thành công; workflow đã start
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingCreateResponse"
+        "400":
+          description: Thiếu hoặc sai tham số
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Ghế không còn AVAILABLE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Service phụ thuộc (movie/payment/voucher) không khả dụng
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Lỗi server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bookings/{id}:
+    get:
+      summary: Lấy chi tiết booking theo id
+      operationId: getBookingById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Chi tiết booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          description: Không tìm thấy booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bookings/user/{user_id}:
+    get:
+      summary: Liệt kê booking của một user
+      operationId: listBookingsByUser
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Danh sách booking
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+
+  /bookings/{id}/cancel:
+    post:
+      summary: Hủy booking (user-initiated); trigger compensation release seats
+      operationId: cancelBooking
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Hủy thành công
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+        "404":
+          description: Không tìm thấy booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Booking không ở trạng thái có thể hủy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    BookingCreateRequest:
+      type: object
+      required:
+        - user_id
+        - showtime_id
+        - seat_ids
+        - email
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        showtime_id:
+          type: string
+        seat_ids:
+          type: array
+          items:
+            type: string
+        email:
+          type: string
+          format: email
+        voucher_code:
+          type: string
+          nullable: true
+          example: "SUMMER20"
+
+    BookingCreateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Booking initiated. Please complete payment."
+        booking_id:
+          type: string
+          format: uuid
+        workflow_id:
+          type: string
+          description: Temporal workflow id
+        payment_url:
+          type: string
+          example: "http://localhost:5006/payments/mock/abc/page"
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        showtime_id:
+          type: string
+        seat_ids:
+          type: array
+          items:
+            type: string
+        email:
+          type: string
+          format: email
+        voucher_code:
+          type: string
+          nullable: true
+        original_price:
+          type: number
+          format: double
+        discount_amount:
+          type: number
+          format: double
+        final_price:
+          type: number
+          format: double
+        payment_id:
+          type: string
+          nullable: true
+        workflow_id:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [AWAITING_PAYMENT, ACTIVE, CANCELLED]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Error message"
