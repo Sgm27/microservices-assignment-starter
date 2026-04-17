@@ -75,7 +75,7 @@ export default function MovieDetail() {
               >
                 <span>{formatDate(s.starts_at)}</span>
                 <span className="muted">Room {s.room}</span>
-                <span>${s.base_price.toFixed(2)}</span>
+                <span>${Number(s.base_price).toFixed(2)}</span>
               </Link>
             </li>
           ))}

@@ -59,8 +59,8 @@ export default function MyBookings() {
                 {b.seat_numbers && (
                   <div>Seats: {b.seat_numbers.join(", ")}</div>
                 )}
-                {typeof b.final_amount === "number" && (
-                  <div>Amount: ${b.final_amount.toFixed(2)}</div>
+                {b.final_amount != null && (
+                  <div>Amount: ${Number(b.final_amount).toFixed(2)}</div>
                 )}
                 <div>Status: {b.status}</div>
               </li>

@@ -86,8 +86,8 @@ export default function PaymentResult() {
           {booking.seat_numbers && (
             <p>Seats: {booking.seat_numbers.join(", ")}</p>
           )}
-          {typeof booking.final_amount === "number" && (
-            <p>Amount: ${booking.final_amount.toFixed(2)}</p>
+          {booking.final_amount != null && (
+            <p>Amount: ${Number(booking.final_amount).toFixed(2)}</p>
           )}
           {booking.booking_id && <p className="muted">Booking {booking.booking_id}</p>}
         </div>

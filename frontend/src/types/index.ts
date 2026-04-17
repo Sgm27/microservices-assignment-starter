@@ -15,7 +15,7 @@ export type Showtime = {
   id: string;
   room: string;
   starts_at: string;
-  base_price: number;
+  base_price: number | string;
   movie_id?: string;
 };
 
@@ -50,7 +50,7 @@ export type Booking = {
   seat_numbers?: string[];
   voucher_code?: string | null;
   status: string;
-  final_amount?: number;
+  final_amount?: number | string;
   payment_id?: string;
   payment_url?: string;
   workflow_id?: string;
@@ -63,6 +63,6 @@ export type CreateBookingResponse = {
   payment_id: string;
   payment_url: string;
   status: string;
-  final_amount: number;
+  final_amount: number | string;
   workflow_id: string;
 };

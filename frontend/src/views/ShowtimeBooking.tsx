@@ -46,7 +46,7 @@ export default function ShowtimeBooking() {
     };
   }, [id]);
 
-  const basePrice = showtime?.base_price ?? 0;
+  const basePrice = Number(showtime?.base_price ?? 0);
   const baseAmount = useMemo(
     () => selected.length * basePrice,
     [selected.length, basePrice],
@@ -126,7 +126,7 @@ export default function ShowtimeBooking() {
       <h1>Book Seats</h1>
       <p className="muted">
         Room {showtime.room} — {new Date(showtime.starts_at).toLocaleString()} —
-        Base ${showtime.base_price.toFixed(2)}
+        Base ${Number(showtime.base_price).toFixed(2)}
       </p>
 
       <h2>Choose seats</h2>
