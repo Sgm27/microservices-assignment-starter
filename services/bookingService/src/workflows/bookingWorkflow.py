@@ -1,6 +1,7 @@
 """Temporal workflow that finalises a booking after payment."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -43,7 +44,7 @@ class BookingWorkflow:
             if status in ("SUCCESS", "FAILED", "CANCELLED"):
                 final_status = status
                 break
-            await workflow.sleep(POLL_INTERVAL_SECONDS)
+            await asyncio.sleep(POLL_INTERVAL_SECONDS)
             elapsed += POLL_INTERVAL_SECONDS
 
         # 2. SUCCESS → confirm, redeem, notify, mark ACTIVE
