@@ -116,3 +116,12 @@ test-results/
 
 # Service-local virtualenvs (created during local pytest)
 services/*/.venv/
+# node_modules and vite cache
+
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
+gateway/.venv/

@@ -1,54 +1,89 @@
-# Frontend
+# Frontend — Cinema Booking UI
 
-## Overview
-
-This is the frontend module of the microservices system. It provides the user interface and communicates with backend services through the API Gateway.
+React + Vite + TypeScript single-page app that drives the cinema ticket
+booking flow. All traffic is routed through the API Gateway.
 
 ## Tech Stack
 
 | Component        | Choice               |
 |------------------|----------------------|
-| Framework        | *(e.g., React, Vue, Angular, Svelte, plain HTML/JS)* |
-| Styling          | *(e.g., CSS, Tailwind, Bootstrap, Material UI)*       |
-| Package Manager  | *(e.g., npm, yarn, pnpm)*                             |
-| Build Tool       | *(e.g., Vite, Webpack, esbuild)*                      |
+| Framework        | React 18 + TypeScript 5 |
+| Build Tool       | Vite 5                |
+| Router           | react-router-dom v6 (HashRouter) |
+| HTTP             | axios                 |
+| Tests            | vitest + @testing-library/react |
+| Styling          | Single global CSS (dark theme) |
+| Package Manager  | npm                   |
 
 ## Getting Started
 
 ```bash
-# From project root
-docker compose up frontend --build
+# From the frontend directory
+npm install
+npm run dev        # http://localhost:5173
 
-# Or run locally (adapt to your stack)
-cd src/
-# npm install && npm run dev
-# yarn && yarn dev
+# Tests
+npm run test
+
+# Production build + preview
+npm run build
+npm run preview
 ```
+
+Or via Docker Compose from the repo root:
+
+```bash
+docker compose up frontend --build
+```
+
+## Environment Variables
+
+| Variable              | Description                | Default                  |
+|-----------------------|----------------------------|--------------------------|
+| `VITE_API_BASE_URL`   | URL of the API Gateway     | `http://localhost:5000`  |
+
+The axios client reads this value at build time (Vite substitutes the
+string) and all API calls are routed through it.
 
 ## Project Structure
 
 ```
 frontend/
-├── Dockerfile
-├── readme.md
-└── src/           # Your source code goes here
+  Dockerfile
+  index.html
+  package.json
+  tsconfig.json
+  vite.config.ts
+  src/
+    main.tsx
+    App.tsx
+    api/           # axios client + per-service modules
+    components/    # NavBar, PrivateRoute, SeatGrid
+    context/       # AuthContext
+    router/        # route definitions
+    styles/        # global.css
+    types/         # shared TS types
+    views/         # one file per page (MovieList, MovieDetail, ShowtimeBooking, MockPay, ...)
+  tests/           # vitest smoke tests
 ```
 
-## Environment Variables
+## Booking Flow
 
-| Variable       | Description                | Default                  |
-|----------------|----------------------------|--------------------------|
-| `API_BASE_URL` | URL of the API Gateway     | `http://localhost:8080`  |
-
-## Build for Production
-
-```bash
-# Example:
-# npm run build
-# yarn build
-```
+1. `GET /movies` on the home page -> click a movie -> `GET /movies/{id}`
+2. Pick a showtime -> `GET /showtimes/{id}` + `GET /showtimes/{id}/seats`
+3. Select seats, optionally apply a voucher (`POST /vouchers/validate`)
+4. `POST /bookings` -> redirect to `/mock-pay/{payment_id}`
+5. "Pay" button calls `POST /payments/mock/{id}/confirm { success: true }`
+6. Redirect to `/booking/payment-result?booking_id=...` which polls
+   `GET /bookings/{id}` every 2s (up to 15 tries) until a terminal status
+   (`ACTIVE`, `CANCELLED`, `FAILED`).
 
 ## Notes
 
-- All API calls should go through the **API Gateway** (`gateway`), not directly to individual services.
-- Configure proxy or API base URL to point to the gateway.
+- All API calls go through the **API Gateway**, never directly to a
+  backend service.
+- Auth token is stored in `localStorage` under `token`; the axios
+  interceptor adds `Authorization: Bearer <token>` automatically.
+- Protected routes (`/bookings`, `/showtimes/:id/book`, `/mock-pay/:id`,
+  `/booking/payment-result`) redirect to `/login` when no token is
+  present.
