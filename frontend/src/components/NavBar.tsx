@@ -21,14 +21,14 @@ export default function NavBar() {
           end
           className={({ isActive }) => (isActive ? "active" : "")}
         >
-          Home
+          Trang chủ
         </NavLink>
         {isAuthenticated && (
           <NavLink
             to="/bookings"
             className={({ isActive }) => (isActive ? "active" : "")}
           >
-            My Bookings
+            Đơn của tôi
           </NavLink>
         )}
       </div>
@@ -41,12 +41,12 @@ export default function NavBar() {
               onClick={handleLogout}
               className="btn btn-ghost"
             >
-              Logout
+              Đăng xuất
             </button>
           </>
         ) : (
           <NavLink to="/login" className="btn btn-primary">
-            Login
+            Đăng nhập
           </NavLink>
         )}
       </div>
