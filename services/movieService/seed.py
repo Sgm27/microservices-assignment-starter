@@ -38,7 +38,7 @@ SEED_MOVIES = [
         "title": "Oppenheimer",
         "description": "The story of J. Robert Oppenheimer and the atomic bomb.",
         "duration_min": 180,
-        "poster_url": "/posters/oppenheimer.jpg",
+        "poster_url": "/posters/oppenheimer.png",
         "genre": "Drama",
         "showtimes": [
             {"room": "Hall-1", "starts_at": _in_days(1, 19), "base_price": Decimal("120000")},
@@ -49,7 +49,7 @@ SEED_MOVIES = [
         "title": "Inside Out 2",
         "description": "Riley's teenage emotions move into headquarters.",
         "duration_min": 96,
-        "poster_url": "/posters/inside-out-2.jpg",
+        "poster_url": "/posters/inside-out-2.png",
         "genre": "Animation",
         "showtimes": [
             {"room": "Hall-1", "starts_at": _in_days(1, 14), "base_price": Decimal("90000")},
@@ -60,10 +60,20 @@ SEED_MOVIES = [
         "title": "Dune: Part Two",
         "description": "Paul Atreides unites with the Fremen to seek revenge.",
         "duration_min": 166,
-        "poster_url": "/posters/dune-part-two.jpg",
+        "poster_url": "/posters/dune-part-two.png",
         "genre": "Sci-Fi",
         "showtimes": [
             {"room": "IMAX-1", "starts_at": _in_days(2, 20), "base_price": Decimal("180000")},
+        ],
+    },
+    {
+        "title": "The Batman",
+        "description": "Batman tracks down the Riddler across the streets of Gotham.",
+        "duration_min": 176,
+        "poster_url": "/posters/the-batman.png",
+        "genre": "Action",
+        "showtimes": [
+            {"room": "Hall-2", "starts_at": _in_days(1, 21), "base_price": Decimal("110000")},
         ],
     },
 ]
