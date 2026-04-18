@@ -38,7 +38,7 @@ SEED_MOVIES = [
         "title": "Oppenheimer",
         "description": "The story of J. Robert Oppenheimer and the atomic bomb.",
         "duration_min": 180,
-        "poster_url": "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+        "poster_url": "/posters/oppenheimer.jpg",
         "genre": "Drama",
         "showtimes": [
             {"room": "Hall-1", "starts_at": _in_days(1, 19), "base_price": Decimal("120000")},
@@ -49,7 +49,7 @@ SEED_MOVIES = [
         "title": "Inside Out 2",
         "description": "Riley's teenage emotions move into headquarters.",
         "duration_min": 96,
-        "poster_url": "https://image.tmdb.org/t/p/w500/vpnVM9B6NMmQpWeZvzLvDESb2QE.jpg",
+        "poster_url": "/posters/inside-out-2.jpg",
         "genre": "Animation",
         "showtimes": [
             {"room": "Hall-1", "starts_at": _in_days(1, 14), "base_price": Decimal("90000")},
@@ -60,7 +60,7 @@ SEED_MOVIES = [
         "title": "Dune: Part Two",
         "description": "Paul Atreides unites with the Fremen to seek revenge.",
         "duration_min": 166,
-        "poster_url": "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+        "poster_url": "/posters/dune-part-two.jpg",
         "genre": "Sci-Fi",
         "showtimes": [
             {"room": "IMAX-1", "starts_at": _in_days(2, 20), "base_price": Decimal("180000")},
@@ -84,6 +84,12 @@ def seed() -> None:
                 session.add(movie)
                 session.flush()
                 created_movies += 1
+            else:
+                # Refresh mutable fields so re-running picks up new posters etc.
+                for field in ("description", "duration_min", "poster_url", "genre"):
+                    new_value = movie_data.get(field)
+                    if new_value is not None and getattr(movie, field) != new_value:
+                        setattr(movie, field, new_value)
 
             for st_data in showtimes_data:
                 showtime = (
