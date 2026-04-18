@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMovie } from "../api/movies";
+import MoviePoster from "../components/MoviePoster";
 import type { Movie } from "../types";
 
 function formatDate(iso: string): string {
@@ -48,11 +49,12 @@ export default function MovieDetail() {
   return (
     <section className="movie-detail">
       <div className="movie-detail-top">
-        {movie.poster_url ? (
-          <img src={movie.poster_url} alt={movie.title} className="poster" />
-        ) : (
-          <div className="poster-placeholder large">{movie.title}</div>
-        )}
+        <MoviePoster
+          src={movie.poster_url}
+          title={movie.title}
+          className="poster"
+          fallbackClassName="large"
+        />
         <div>
           <h1>{movie.title}</h1>
           {movie.duration_minutes && (
