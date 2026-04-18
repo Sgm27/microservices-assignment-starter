@@ -18,7 +18,7 @@ export default function MovieList() {
       .catch((err) => {
         if (mounted)
           setError(
-            (err as { message?: string })?.message ?? "Failed to load movies",
+            (err as { message?: string })?.message ?? "Không tải được danh sách phim",
           );
       })
       .finally(() => {
@@ -29,17 +29,17 @@ export default function MovieList() {
     };
   }, []);
 
-  if (loading) return <p>Loading movies…</p>;
+  if (loading) return <p>Đang tải phim…</p>;
   if (error) return <p className="error">{error}</p>;
 
   return (
     <section>
       <div className="hero">
-        <h1>Now Showing</h1>
-        <p>Pick a film and book your seat in seconds.</p>
+        <h1>Đang chiếu</h1>
+        <p>Chọn phim và đặt vé trong vài giây.</p>
       </div>
       {movies.length === 0 ? (
-        <p className="muted">No movies available.</p>
+        <p className="muted">Chưa có phim nào.</p>
       ) : (
         <div className="movie-grid">
           {movies.map((m) => (
@@ -48,7 +48,7 @@ export default function MovieList() {
               <div className="movie-info">
                 <h3>{m.title}</h3>
                 <p className="muted">
-                  {m.duration_minutes ? `${m.duration_minutes} min` : ""}
+                  {m.duration_minutes ? `${m.duration_minutes} phút` : ""}
                   {m.duration_minutes && (m as { genre?: string }).genre
                     ? " · "
                     : ""}
