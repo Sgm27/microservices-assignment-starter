@@ -34,7 +34,7 @@ export default function Login() {
     } catch (err) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? "Authentication failed";
+          ?.detail ?? "Đăng nhập thất bại";
       setError(msg);
     } finally {
       setLoading(false);
@@ -43,7 +43,7 @@ export default function Login() {
 
   return (
     <div className="card narrow">
-      <h1>{mode === "login" ? "Sign In" : "Create Account"}</h1>
+      <h1>{mode === "login" ? "Đăng nhập" : "Tạo tài khoản"}</h1>
       <form onSubmit={handleSubmit} className="form">
         <label>
           Email
@@ -55,7 +55,7 @@ export default function Login() {
           />
         </label>
         <label>
-          Password
+          Mật khẩu
           <input
             type="password"
             value={password}
@@ -67,7 +67,7 @@ export default function Login() {
         {mode === "register" && (
           <>
             <label>
-              Full name
+              Họ tên
               <input
                 type="text"
                 value={fullName}
@@ -76,7 +76,7 @@ export default function Login() {
               />
             </label>
             <label>
-              Phone (optional)
+              Số điện thoại (tùy chọn)
               <input
                 type="tel"
                 value={phone}
@@ -88,20 +88,20 @@ export default function Login() {
         {error && <p className="error">{error}</p>}
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading
-            ? "Please wait…"
+            ? "Đang xử lý…"
             : mode === "login"
-              ? "Sign In"
-              : "Register"}
+              ? "Đăng nhập"
+              : "Đăng ký"}
         </button>
       </form>
       <p className="muted">
-        {mode === "login" ? "No account yet?" : "Already have an account?"}{" "}
+        {mode === "login" ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
         <button
           type="button"
           className="btn btn-link"
           onClick={() => setMode(mode === "login" ? "register" : "login")}
         >
-          {mode === "login" ? "Register" : "Sign in"}
+          {mode === "login" ? "Đăng ký" : "Đăng nhập"}
         </button>
       </p>
     </div>
