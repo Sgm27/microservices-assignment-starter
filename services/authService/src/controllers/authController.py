@@ -42,7 +42,7 @@ def _create_token(user: AuthUser) -> str:
 def register(db: Session, payload: RegisterRequest) -> TokenResponse:
     existing = db.query(AuthUser).filter(AuthUser.email == payload.email).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email already registered")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email đã được đăng ký")
 
     user = AuthUser(
         email=payload.email,
@@ -67,7 +67,7 @@ def login(db: Session, payload: LoginRequest) -> TokenResponse:
     if not user or not _verify_password(payload.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="invalid email or password",
+            detail="Email hoặc mật khẩu không đúng",
         )
     token = _create_token(user)
     return TokenResponse(
@@ -85,7 +85,7 @@ def verify(token: str) -> VerifyResponse:
     except JWTError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"invalid token: {exc}",
+            detail=f"Token không hợp lệ: {exc}",
         ) from exc
     return VerifyResponse(
         valid=True,
