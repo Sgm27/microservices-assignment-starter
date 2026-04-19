@@ -77,7 +77,7 @@ def create_booking(db: Session, payload: CreateBookingRequest) -> CreateBookingR
             booking.status = "FAILED"
             booking.failure_reason = f"voucher invalid: {v.get('message')}"
             db.commit()
-            raise HTTPException(status_code=400, detail=v.get("message") or "invalid voucher")
+            raise HTTPException(status_code=400, detail=v.get("message") or "Mã giảm giá không hợp lệ")
         discount_amount = Decimal(str(v.get("discount_amount") or 0))
 
     final_amount = (original_amount - discount_amount).quantize(Decimal("0.01"))
@@ -134,7 +134,7 @@ def create_booking(db: Session, payload: CreateBookingRequest) -> CreateBookingR
 def get_booking(db: Session, booking_id: int) -> Booking:
     booking = db.query(Booking).filter(Booking.id == booking_id).first()
     if booking is None:
-        raise HTTPException(status_code=404, detail="booking not found")
+        raise HTTPException(status_code=404, detail="Không tìm thấy đơn đặt vé")
     return booking
 
 
@@ -150,7 +150,7 @@ def list_bookings_by_user(db: Session, user_id: int) -> list[Booking]:
 def cancel_booking(db: Session, booking_id: int) -> Booking:
     booking = get_booking(db, booking_id)
     if booking.status in ("ACTIVE", "CANCELLED"):
-        raise HTTPException(status_code=400, detail=f"cannot cancel booking in state {booking.status}")
+        raise HTTPException(status_code=400, detail=f"Không thể hủy đơn ở trạng thái {booking.status}")
 
     # Best-effort seat release (idempotent on the movieService side).
     try:

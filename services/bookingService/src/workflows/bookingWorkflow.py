@@ -65,8 +65,8 @@ class BookingWorkflow:
                 args=[
                     user_id,
                     email,
-                    "Booking confirmed",
-                    f"Booking {booking_id} confirmed. Enjoy the show!",
+                    "Xác nhận đặt vé",
+                    f"Đơn đặt vé {booking_id} đã được xác nhận. Chúc bạn xem phim vui vẻ!",
                 ],
                 start_to_close_timeout=timedelta(seconds=30),
             )
