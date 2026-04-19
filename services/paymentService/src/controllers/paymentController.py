@@ -29,7 +29,7 @@ def create_payment(db: Session, payload: CreatePaymentRequest) -> CreatePaymentR
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="payment already exists for this booking",
+            detail="Đơn thanh toán đã tồn tại cho đơn đặt vé này",
         )
 
     settings = get_settings()
@@ -67,7 +67,7 @@ def get_by_id(db: Session, payment_id: int) -> PaymentDetail:
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="payment not found",
+            detail="Không tìm thấy đơn thanh toán",
         )
     return _to_detail(payment)
 
@@ -77,7 +77,7 @@ def get_by_booking_id(db: Session, booking_id: int) -> PaymentDetail:
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="payment not found",
+            detail="Không tìm thấy đơn thanh toán",
         )
     return _to_detail(payment)
 
@@ -89,12 +89,12 @@ def mock_confirm(
     if not payment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="payment not found",
+            detail="Không tìm thấy đơn thanh toán",
         )
     if payment.status in FINAL_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="payment is already finalized",
+            detail="Đơn thanh toán đã được hoàn tất",
         )
 
     payment.status = "SUCCESS" if payload.success else "FAILED"
