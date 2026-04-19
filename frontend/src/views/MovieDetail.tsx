@@ -2,15 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getMovie } from "../api/movies";
 import MoviePoster from "../components/MoviePoster";
+import { formatDateVi, formatVND } from "../utils/format";
 import type { Movie } from "../types";
-
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString();
-  } catch {
-    return iso;
-  }
-}
 
 export default function MovieDetail() {
   const { id } = useParams<{ id: string }>();
@@ -29,7 +22,7 @@ export default function MovieDetail() {
       .catch((err) => {
         if (mounted)
           setError(
-            (err as { message?: string })?.message ?? "Failed to load movie",
+            (err as { message?: string })?.message ?? "Không tải được phim",
           );
       })
       .finally(() => {
@@ -40,9 +33,9 @@ export default function MovieDetail() {
     };
   }, [id]);
 
-  if (loading) return <p>Loading movie…</p>;
+  if (loading) return <p>Đang tải phim…</p>;
   if (error) return <p className="error">{error}</p>;
-  if (!movie) return <p>Movie not found.</p>;
+  if (!movie) return <p>Không tìm thấy phim.</p>;
 
   const showtimes = movie.showtimes ?? [];
 
@@ -58,15 +51,15 @@ export default function MovieDetail() {
         <div>
           <h1>{movie.title}</h1>
           {movie.duration_minutes && (
-            <p className="muted">{movie.duration_minutes} min</p>
+            <p className="muted">{movie.duration_minutes} phút</p>
           )}
           {movie.description && <p>{movie.description}</p>}
         </div>
       </div>
 
-      <h2>Showtimes</h2>
+      <h2>Suất chiếu</h2>
       {showtimes.length === 0 ? (
-        <p className="muted">No showtimes scheduled.</p>
+        <p className="muted">Chưa có suất chiếu.</p>
       ) : (
         <ul className="showtime-list">
           {showtimes.map((s) => (
@@ -75,9 +68,9 @@ export default function MovieDetail() {
                 to={`/showtimes/${s.id}/book`}
                 className="showtime-card btn btn-ghost"
               >
-                <span>{formatDate(s.starts_at)}</span>
-                <span className="muted">Room {s.room}</span>
-                <span>${Number(s.base_price).toFixed(2)}</span>
+                <span>{formatDateVi(s.starts_at)}</span>
+                <span className="muted">Phòng {s.room}</span>
+                <span>{formatVND(s.base_price)}</span>
               </Link>
             </li>
           ))}
