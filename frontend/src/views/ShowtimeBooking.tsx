@@ -4,6 +4,7 @@ import { getShowtime, getShowtimeSeats } from "../api/movies";
 import { validateVoucher } from "../api/vouchers";
 import { createBooking } from "../api/bookings";
 import { useAuth } from "../context/AuthContext";
+import { formatDateVi, formatVND } from "../utils/format";
 import type { Seat, Showtime, VoucherResult } from "../types";
 import SeatGrid from "../components/SeatGrid";
 
@@ -35,7 +36,7 @@ export default function ShowtimeBooking() {
       .catch((err) => {
         if (mounted)
           setError(
-            (err as { message?: string })?.message ?? "Failed to load showtime",
+            (err as { message?: string })?.message ?? "Không tải được suất chiếu",
           );
       })
       .finally(() => {
@@ -70,18 +71,18 @@ export default function ShowtimeBooking() {
       return;
     }
     if (baseAmount <= 0) {
-      setVoucherError("Pick at least one seat first.");
+      setVoucherError("Hãy chọn ít nhất một ghế trước.");
       return;
     }
     try {
       const result = await validateVoucher(voucherCode.trim(), baseAmount);
       setVoucher(result);
       if (!result.valid) {
-        setVoucherError(result.message ?? "Voucher not valid.");
+        setVoucherError(result.message ?? "Mã không hợp lệ.");
       }
     } catch (err) {
       setVoucherError(
-        (err as { message?: string })?.message ?? "Voucher check failed",
+        (err as { message?: string })?.message ?? "Không kiểm tra được mã",
       );
     }
   };
@@ -89,7 +90,7 @@ export default function ShowtimeBooking() {
   const handleBook = async () => {
     if (!id || !user) return;
     if (selected.length === 0) {
-      setError("Pick at least one seat.");
+      setError("Hãy chọn ít nhất một ghế.");
       return;
     }
     setSubmitting(true);
@@ -110,58 +111,58 @@ export default function ShowtimeBooking() {
         (err as { response?: { data?: { detail?: string } }; message?: string })
           ?.response?.data?.detail ??
           (err as { message?: string })?.message ??
-          "Booking failed",
+          "Đặt vé thất bại",
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <p>Loading showtime…</p>;
+  if (loading) return <p>Đang tải suất chiếu…</p>;
   if (error && !showtime) return <p className="error">{error}</p>;
-  if (!showtime) return <p>Showtime not found.</p>;
+  if (!showtime) return <p>Không tìm thấy suất chiếu.</p>;
 
   return (
     <section className="booking-page">
-      <h1>Book Seats</h1>
+      <h1>Đặt ghế</h1>
       <p className="muted">
-        Room {showtime.room} — {new Date(showtime.starts_at).toLocaleString()} —
-        Base ${Number(showtime.base_price).toFixed(2)}
+        Phòng {showtime.room} — {formatDateVi(showtime.starts_at)} — Giá{" "}
+        {formatVND(showtime.base_price)}
       </p>
 
-      <h2>Choose seats</h2>
+      <h2>Chọn ghế</h2>
       <SeatGrid seats={seats} selected={selected} onToggle={toggleSeat} />
 
       <div className="seat-legend">
-        <span className="legend-box seat-available" /> Available
-        <span className="legend-box seat-pending" /> Pending
-        <span className="legend-box seat-booked" /> Booked
-        <span className="legend-box seat-selected" /> Selected
+        <span className="legend-box seat-available" /> Còn trống
+        <span className="legend-box seat-pending" /> Đang chờ
+        <span className="legend-box seat-booked" /> Đã đặt
+        <span className="legend-box seat-selected" /> Đang chọn
       </div>
 
       <div className="voucher-row">
         <input
           type="text"
-          placeholder="Voucher code (optional)"
+          placeholder="Mã giảm giá (tùy chọn)"
           value={voucherCode}
           onChange={(e) => setVoucherCode(e.target.value)}
         />
         <button type="button" onClick={applyVoucher} className="btn btn-ghost">
-          Apply
+          Áp dụng
         </button>
       </div>
       {voucherError && <p className="error">{voucherError}</p>}
       {voucher?.valid && (
         <p className="success">
-          Voucher applied. Discount ${voucher.discount_amount.toFixed(2)}.
+          Đã áp dụng. Giảm {formatVND(voucher.discount_amount)}.
         </p>
       )}
 
       <div className="booking-summary">
-        <p>Selected: {selected.length ? selected.join(", ") : "none"}</p>
-        <p>Base total: ${baseAmount.toFixed(2)}</p>
+        <p>Đã chọn: {selected.length ? selected.join(", ") : "chưa có"}</p>
+        <p>Tạm tính: {formatVND(baseAmount)}</p>
         <p>
-          <strong>Final: ${finalAmount.toFixed(2)}</strong>
+          <strong>Tổng: {formatVND(finalAmount)}</strong>
         </p>
       </div>
 
@@ -173,7 +174,7 @@ export default function ShowtimeBooking() {
         disabled={submitting || selected.length === 0}
         className="btn btn-primary"
       >
-        {submitting ? "Booking…" : "Book"}
+        {submitting ? "Đang đặt…" : "Đặt vé"}
       </button>
     </section>
   );
