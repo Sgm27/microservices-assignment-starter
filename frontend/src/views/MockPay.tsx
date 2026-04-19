@@ -22,7 +22,7 @@ export default function MockPay() {
         (err as { response?: { data?: { detail?: string } }; message?: string })
           ?.response?.data?.detail ??
           (err as { message?: string })?.message ??
-          "Payment failed",
+          "Thanh toán thất bại",
       );
     } finally {
       setSubmitting(null);
@@ -31,9 +31,9 @@ export default function MockPay() {
 
   return (
     <div className="card narrow center">
-      <h1>Mock Payment</h1>
-      <p className="muted">Payment ID: {id}</p>
-      {bookingId && <p className="muted">Booking ID: {bookingId}</p>}
+      <h1>Thanh toán mô phỏng</h1>
+      <p className="muted">Mã thanh toán: {id}</p>
+      {bookingId && <p className="muted">Mã đơn: {bookingId}</p>}
       <div className="btn-row">
         <button
           type="button"
@@ -41,7 +41,7 @@ export default function MockPay() {
           onClick={() => handle(true)}
           disabled={submitting !== null}
         >
-          {submitting === "pay" ? "Processing…" : "Pay"}
+          {submitting === "pay" ? "Đang xử lý…" : "Thanh toán"}
         </button>
         <button
           type="button"
@@ -49,7 +49,7 @@ export default function MockPay() {
           onClick={() => handle(false)}
           disabled={submitting !== null}
         >
-          {submitting === "cancel" ? "Cancelling…" : "Cancel"}
+          {submitting === "cancel" ? "Đang hủy…" : "Hủy"}
         </button>
       </div>
       {error && <p className="error">{error}</p>}
