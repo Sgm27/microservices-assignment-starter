@@ -8,14 +8,14 @@ from ..validators.userSchemas import CreateUserRequest, UserResponse
 def create_user(db: Session, payload: CreateUserRequest) -> UserResponse:
     existing_email = db.query(User).filter(User.email == payload.email).first()
     if existing_email:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="email already exists")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email đã tồn tại")
 
     if payload.id is not None:
         existing_id = db.query(User).filter(User.id == payload.id).first()
         if existing_id:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="user id already exists",
+                detail="User ID đã tồn tại",
             )
 
     user = User(
@@ -35,7 +35,7 @@ def create_user(db: Session, payload: CreateUserRequest) -> UserResponse:
 def get_user(db: Session, user_id: int) -> UserResponse:
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy người dùng")
     return UserResponse.model_validate(user)
 
 
