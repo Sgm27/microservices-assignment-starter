@@ -25,7 +25,7 @@ def create_voucher(db: Session, payload: VoucherCreateRequest) -> VoucherRespons
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="voucher code already exists",
+            detail="Mã giảm giá đã tồn tại",
         )
     voucher = Voucher(
         code=payload.code,
@@ -54,7 +54,7 @@ def validate_voucher(db: Session, payload: VoucherValidateRequest) -> VoucherVal
             valid=False,
             discount_amount=0.0,
             final_amount=round(payload.base_amount, 2),
-            message="voucher not found",
+            message="Mã giảm giá không tồn tại",
         )
 
     now = datetime.utcnow()
@@ -63,7 +63,7 @@ def validate_voucher(db: Session, payload: VoucherValidateRequest) -> VoucherVal
             valid=False,
             discount_amount=0.0,
             final_amount=round(payload.base_amount, 2),
-            message="voucher expired or not yet valid",
+            message="Mã giảm giá đã hết hạn hoặc chưa đến ngày áp dụng",
         )
 
     if voucher.used_count >= voucher.max_uses:
@@ -71,7 +71,7 @@ def validate_voucher(db: Session, payload: VoucherValidateRequest) -> VoucherVal
             valid=False,
             discount_amount=0.0,
             final_amount=round(payload.base_amount, 2),
-            message="voucher has reached max uses",
+            message="Mã giảm giá đã hết lượt sử dụng",
         )
 
     discount_amount, final_amount = _compute_amounts(
@@ -90,12 +90,12 @@ def redeem_voucher(db: Session, payload: VoucherRedeemRequest) -> VoucherRedeemR
     if not voucher:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="voucher not found",
+            detail="Mã giảm giá không tồn tại",
         )
     if voucher.used_count >= voucher.max_uses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="voucher has reached max uses",
+            detail="Mã giảm giá đã hết lượt sử dụng",
         )
     voucher.used_count = voucher.used_count + 1
     db.add(voucher)
