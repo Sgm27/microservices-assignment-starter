@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listUserBookings } from "../api/bookings";
 import { useAuth } from "../context/AuthContext";
+import { formatDateVi, formatVND, statusLabel } from "../utils/format";
 import type { Booking } from "../types";
 
 export default function MyBookings() {
@@ -21,7 +22,7 @@ export default function MyBookings() {
         if (mounted)
           setError(
             (err as { message?: string })?.message ??
-              "Failed to load bookings",
+              "Không tải được đơn",
           );
       })
       .finally(() => {
@@ -32,14 +33,14 @@ export default function MyBookings() {
     };
   }, [user]);
 
-  if (loading) return <p>Loading bookings…</p>;
+  if (loading) return <p>Đang tải…</p>;
   if (error) return <p className="error">{error}</p>;
 
   return (
     <section>
-      <h1>My Bookings</h1>
+      <h1>Đơn đặt vé</h1>
       {bookings.length === 0 ? (
-        <p className="muted">No bookings yet.</p>
+        <p className="muted">Chưa có đơn nào.</p>
       ) : (
         <ul className="booking-list">
           {bookings.map((b) => {
@@ -51,18 +52,18 @@ export default function MyBookings() {
                   {b.created_at && (
                     <span className="muted">
                       {" "}
-                      · {new Date(b.created_at).toLocaleString()}
+                      · {formatDateVi(b.created_at)}
                     </span>
                   )}
                 </div>
-                {b.showtime_id && <div>Showtime: {b.showtime_id}</div>}
+                {b.showtime_id && <div>Suất chiếu: {b.showtime_id}</div>}
                 {b.seat_numbers && (
-                  <div>Seats: {b.seat_numbers.join(", ")}</div>
+                  <div>Ghế: {b.seat_numbers.join(", ")}</div>
                 )}
                 {b.final_amount != null && (
-                  <div>Amount: ${Number(b.final_amount).toFixed(2)}</div>
+                  <div>Tổng tiền: {formatVND(b.final_amount)}</div>
                 )}
-                <div>Status: {b.status}</div>
+                <div>Trạng thái: {statusLabel(b.status)}</div>
               </li>
             );
           })}
