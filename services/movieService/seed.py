@@ -36,7 +36,7 @@ def _in_days(days: int, hour: int = 19, minute: int = 0) -> datetime:
 SEED_MOVIES = [
     {
         "title": "Oppenheimer",
-        "description": "The story of J. Robert Oppenheimer and the atomic bomb.",
+        "description": "Câu chuyện về J. Robert Oppenheimer và quả bom nguyên tử.",
         "duration_min": 180,
         "poster_url": "/posters/oppenheimer.png",
         "genre": "Drama",
@@ -47,7 +47,7 @@ SEED_MOVIES = [
     },
     {
         "title": "Inside Out 2",
-        "description": "Riley's teenage emotions move into headquarters.",
+        "description": "Những cảm xúc tuổi teen của Riley dọn đến tổng hành dinh.",
         "duration_min": 96,
         "poster_url": "/posters/inside-out-2.png",
         "genre": "Animation",
@@ -58,7 +58,7 @@ SEED_MOVIES = [
     },
     {
         "title": "Dune: Part Two",
-        "description": "Paul Atreides unites with the Fremen to seek revenge.",
+        "description": "Paul Atreides liên minh với người Fremen để báo thù.",
         "duration_min": 166,
         "poster_url": "/posters/dune-part-two.png",
         "genre": "Sci-Fi",
@@ -68,7 +68,7 @@ SEED_MOVIES = [
     },
     {
         "title": "The Batman",
-        "description": "Batman tracks down the Riddler across the streets of Gotham.",
+        "description": "Batman truy lùng Riddler khắp các con phố Gotham.",
         "duration_min": 176,
         "poster_url": "/posters/the-batman.png",
         "genre": "Action",
