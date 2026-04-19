@@ -1,3 +1,4 @@
+import { statusLabel } from "../utils/format";
 import type { Seat } from "../types";
 
 type Props = {
@@ -27,7 +28,7 @@ export default function SeatGrid({ seats, selected, onToggle }: Props) {
             onClick={() => !disabled && onToggle(seat)}
             disabled={disabled}
             aria-pressed={isSelected}
-            title={`${seat.seat_number} — ${seat.status}`}
+            title={`${seat.seat_number} — ${statusLabel(seat.status)}`}
           >
             {seat.seat_number}
           </button>
