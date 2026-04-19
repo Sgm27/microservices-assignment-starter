@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getBooking } from "../api/bookings";
+import { formatVND, statusLabel } from "../utils/format";
 import type { Booking } from "../types";
 
 const TERMINAL_STATUSES = new Set(["ACTIVE", "CANCELLED", "FAILED", "CONFIRMED"]);
@@ -25,7 +26,7 @@ export default function PaymentResult() {
 
   useEffect(() => {
     if (!bookingId) {
-      setError("Missing booking_id in URL.");
+      setError("Thiếu booking_id trên URL.");
       setDone(true);
       return;
     }
@@ -48,7 +49,7 @@ export default function PaymentResult() {
       } catch (err) {
         if (cancelled) return;
         setError(
-          (err as { message?: string })?.message ?? "Failed to load booking",
+          (err as { message?: string })?.message ?? "Không tải được đơn",
         );
       }
       if (attempt >= MAX_TRIES) {
@@ -70,35 +71,40 @@ export default function PaymentResult() {
 
   return (
     <div className="card">
-      <h1>Payment Result</h1>
+      <h1>Kết quả thanh toán</h1>
       {!done && (
         <p className="muted">
-          Waiting for payment confirmation… ({tries}/{MAX_TRIES})
+          Đang chờ xác nhận thanh toán… ({tries}/{MAX_TRIES})
         </p>
       )}
       {error && <p className="error">{error}</p>}
       {booking && (
         <div className="booking-summary">
           <p>
-            Status: <span className={statusClass(status)}>{status || "—"}</span>
+            Trạng thái:{" "}
+            <span className={statusClass(status)}>
+              {statusLabel(status) || "—"}
+            </span>
           </p>
-          {booking.showtime_id && <p>Showtime: {booking.showtime_id}</p>}
+          {booking.showtime_id && <p>Suất chiếu: {booking.showtime_id}</p>}
           {booking.seat_numbers && (
-            <p>Seats: {booking.seat_numbers.join(", ")}</p>
+            <p>Ghế: {booking.seat_numbers.join(", ")}</p>
           )}
           {booking.final_amount != null && (
-            <p>Amount: ${Number(booking.final_amount).toFixed(2)}</p>
+            <p>Tổng tiền: {formatVND(booking.final_amount)}</p>
           )}
-          {booking.booking_id && <p className="muted">Booking {booking.booking_id}</p>}
+          {booking.booking_id && (
+            <p className="muted">Mã đơn {booking.booking_id}</p>
+          )}
         </div>
       )}
       {done && (
         <div className="btn-row">
           <Link to="/bookings" className="btn btn-primary">
-            My Bookings
+            Đơn của tôi
           </Link>
           <Link to="/" className="btn btn-ghost">
-            Back to Home
+            Về trang chủ
           </Link>
         </div>
       )}
