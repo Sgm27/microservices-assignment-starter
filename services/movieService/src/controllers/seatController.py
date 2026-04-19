@@ -17,7 +17,7 @@ from ..validators.seatSchemas import (
 def list_seats(db: Session, showtime_id: int) -> list[SeatItem]:
     showtime = db.query(Showtime).filter(Showtime.id == showtime_id).first()
     if not showtime:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="showtime not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy suất chiếu")
 
     seats = (
         db.query(Seat)
@@ -31,7 +31,7 @@ def list_seats(db: Session, showtime_id: int) -> list[SeatItem]:
 def reserve_seats(db: Session, payload: ReserveSeatsRequest) -> ReserveSeatsResponse:
     showtime = db.query(Showtime).filter(Showtime.id == payload.showtime_id).first()
     if not showtime:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="showtime not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy suất chiếu")
 
     seats = (
         db.query(Seat)
@@ -48,14 +48,14 @@ def reserve_seats(db: Session, payload: ReserveSeatsRequest) -> ReserveSeatsResp
     if missing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"seats not found: {missing}",
+            detail=f"Không tìm thấy ghế: {missing}",
         )
 
     unavailable = [s.seat_number for s in seats if s.status != "AVAILABLE"]
     if unavailable:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"seats not available: {unavailable}",
+            detail=f"Ghế đã có người đặt: {unavailable}",
         )
 
     for seat in seats:
@@ -80,7 +80,7 @@ def confirm_seats(db: Session, payload: ConfirmSeatsRequest) -> ConfirmSeatsResp
     if not seats:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="no pending seats for booking_id",
+            detail="Không có ghế đang chờ cho đơn này",
         )
 
     for seat in seats:

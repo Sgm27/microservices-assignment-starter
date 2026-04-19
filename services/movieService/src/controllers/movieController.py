@@ -25,7 +25,7 @@ def get_movie(db: Session, movie_id: int) -> MovieDetail:
         .first()
     )
     if not movie:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="movie not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy phim")
 
     return MovieDetail(
         id=movie.id,
@@ -46,7 +46,7 @@ def get_showtime(db: Session, showtime_id: int) -> ShowtimeDetail:
         .first()
     )
     if not showtime:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="showtime not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy suất chiếu")
 
     return ShowtimeDetail(
         id=showtime.id,
