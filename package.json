@@ -1,0 +1,12 @@
+{
+  "name": "cinema-booking-docs-tooling",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Tooling for rendering docs/asset diagrams.",
+  "scripts": {
+    "render-diagrams": "for f in docs/asset/src/*.mmd; do name=$(basename \"$f\" .mmd); mmdc -i \"$f\" -o \"docs/asset/$name.png\" -b white -s 2 || exit 1; done"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.0"
+  }
+}
