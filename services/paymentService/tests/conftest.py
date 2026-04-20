@@ -15,8 +15,16 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 
 @pytest.fixture
-def client():
-    # Lazy imports so env vars above take effect.
+def client(monkeypatch):
+    # Silence Temporal signal so existing tests don't hit a real server.
+    from src.config import temporalClient
+
+    monkeypatch.setattr(
+        temporalClient,
+        "signal_payment_completed",
+        lambda booking_id, success: None,
+    )
+
     from src.app import app
     from src.config.database import Base, engine
 

@@ -147,3 +147,52 @@ def test_cancel_success_rejected(client):
 def test_cancel_not_found(client):
     r = client.post("/payments/99999/cancel")
     assert r.status_code == 404
+
+
+def test_confirm_sends_signal_on_success(client, monkeypatch):
+    calls = []
+
+    def _fake_signal(booking_id: int, success: bool) -> None:
+        calls.append((booking_id, success))
+
+    from src.config import temporalClient
+
+    monkeypatch.setattr(temporalClient, "signal_payment_completed", _fake_signal)
+
+    created = _create(client, booking_id=2001, amount="100000.00").json()
+
+    r = client.post(f"/payments/{created['payment_id']}/confirm", json={"success": True})
+    assert r.status_code == 200
+    assert calls == [(2001, True)]
+
+
+def test_confirm_sends_signal_on_failure(client, monkeypatch):
+    calls = []
+
+    def _fake_signal(booking_id: int, success: bool) -> None:
+        calls.append((booking_id, success))
+
+    from src.config import temporalClient
+
+    monkeypatch.setattr(temporalClient, "signal_payment_completed", _fake_signal)
+
+    created = _create(client, booking_id=2002, amount="100000.00").json()
+
+    r = client.post(f"/payments/{created['payment_id']}/confirm", json={"success": False})
+    assert r.status_code == 200
+    assert calls == [(2002, False)]
+
+
+def test_confirm_signal_failure_does_not_break_api(client, monkeypatch):
+    def _raising(booking_id: int, success: bool) -> None:
+        raise RuntimeError("temporal unreachable")
+
+    from src.config import temporalClient
+
+    monkeypatch.setattr(temporalClient, "signal_payment_completed", _raising)
+
+    created = _create(client, booking_id=2003, amount="100000.00").json()
+
+    r = client.post(f"/payments/{created['payment_id']}/confirm", json={"success": True})
+    assert r.status_code == 200
+    assert r.json()["status"] == "SUCCESS"

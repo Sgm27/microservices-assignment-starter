@@ -1,7 +1,12 @@
+import logging
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from ..config import temporalClient as _temporal_client
 from ..config.settings import get_settings
+
+log = logging.getLogger(__name__)
 from ..helpers.vnpayHelper import build_payment_url
 from ..models.paymentModel import Payment
 from ..validators.paymentSchemas import (
@@ -94,6 +99,16 @@ def confirm_payment(
     db.add(payment)
     db.commit()
     db.refresh(payment)
+
+    try:
+        _temporal_client.signal_payment_completed(payment.booking_id, payload.success)
+    except Exception as exc:  # noqa: BLE001
+        log.warning(
+            "Failed to signal BookingWorkflow for booking %s: %s",
+            payment.booking_id,
+            exc,
+        )
+
     return _to_detail(payment)
 
 

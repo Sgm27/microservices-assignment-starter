@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     VNPAY_FRONTEND_RETURN_URL: str = "http://localhost:5173/booking/payment-result"
     SELF_BASE_URL: str = "http://localhost:5006"
 
+    TEMPORAL_HOST: str = "temporal:7233"
+    TEMPORAL_NAMESPACE: str = "default"
+    TEMPORAL_TASK_QUEUE: str = "booking-task-queue"
+
     @property
     def database_url(self) -> str:
         if self.SQLALCHEMY_URL:
