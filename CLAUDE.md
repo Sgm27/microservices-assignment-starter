@@ -13,7 +13,7 @@
 - **movieService** (5003) — movies, showtimes, seats
 - **voucherService** (5004) — discount code validation
 - **bookingService** (5005) — Temporal workflow orchestrator (start/query/cancel)
-- **paymentService** (5006) — VNPay sandbox / mock
+- **paymentService** (5006) — VNPay payment URL + kết quả thanh toán
 - **notificationService** (5007) — email via Temporal activity
 - **mysql-db** (3307→3306) — one schema per service
 - **temporal** (7233) + **temporal-ui** (8088→8080) — workflow engine
@@ -24,7 +24,7 @@
 
 1. Activity `reserve_seat` → movieService (lock seat row in PENDING)
 2. Activity `validate_voucher` → voucherService (compute discount)
-3. Activity `create_payment` → paymentService (return VNPay URL or mock URL)
+3. Activity `create_payment` → paymentService (return VNPay payment URL)
 4. Workflow waits for signal `payment_completed` (sent by paymentService webhook)
 5. On SUCCESS: activity `confirm_seat` + `send_notification`
 6. On FAILURE/timeout: compensating activity `release_seat` + `cancel_payment`

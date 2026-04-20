@@ -14,7 +14,7 @@ class Payment(Base):
     booking_id: Mapped[int] = mapped_column(Integer, unique=True, nullable=False, index=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="PENDING")
-    provider: Mapped[str] = mapped_column(String(32), nullable=False, default="mock")
+    provider: Mapped[str] = mapped_column(String(32), nullable=False, default="vnpay")
     payment_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     provider_txn_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

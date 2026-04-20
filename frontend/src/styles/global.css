@@ -517,13 +517,13 @@ textarea:focus {
   color: var(--danger);
 }
 
-.vnpay-mock {
+.vnpay-checkout {
   display: flex;
   justify-content: center;
   padding: 24px 16px;
 }
 
-.vnpay-mock__card {
+.vnpay-checkout__card {
   background: #fff;
   color: #111827;
   border-radius: 12px;
@@ -533,7 +533,7 @@ textarea:focus {
   overflow: hidden;
 }
 
-.vnpay-mock__header {
+.vnpay-checkout__header {
   background: #0b2d6b;
   color: #fff;
   padding: 16px 24px;
@@ -542,12 +542,12 @@ textarea:focus {
   letter-spacing: 0.5px;
 }
 
-.vnpay-mock__body {
+.vnpay-checkout__body {
   padding: 24px;
   text-align: center;
 }
 
-.vnpay-mock__amount {
+.vnpay-checkout__amount {
   background: #f5f7fb;
   border: 1px solid #e1e6f0;
   border-radius: 8px;
@@ -555,25 +555,25 @@ textarea:focus {
   margin-bottom: 20px;
 }
 
-.vnpay-mock__amount-label {
+.vnpay-checkout__amount-label {
   color: #6b7280;
   font-size: 13px;
 }
 
-.vnpay-mock__amount-value {
+.vnpay-checkout__amount-value {
   color: #d32027;
   font-size: 24px;
   font-weight: 700;
   margin-top: 4px;
 }
 
-.vnpay-mock__qr {
+.vnpay-checkout__qr {
   display: flex;
   justify-content: center;
   margin: 12px 0 8px;
 }
 
-.vnpay-mock__qr img {
+.vnpay-checkout__qr img {
   max-width: 280px;
   width: 100%;
   height: auto;
@@ -583,23 +583,23 @@ textarea:focus {
   background: #fff;
 }
 
-.vnpay-mock__hint {
+.vnpay-checkout__hint {
   color: #6b7280;
   font-size: 13px;
   margin: 8px 0 20px;
 }
 
-.vnpay-mock__actions {
+.vnpay-checkout__actions {
   display: flex;
   gap: 12px;
   margin-top: 8px;
 }
 
-.vnpay-mock__actions .btn {
+.vnpay-checkout__actions .btn {
   flex: 1;
 }
 
-.vnpay-mock__meta {
+.vnpay-checkout__meta {
   color: #9ca3af;
   font-size: 12px;
   margin-top: 16px;

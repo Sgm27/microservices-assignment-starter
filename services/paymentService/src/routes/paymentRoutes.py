@@ -39,15 +39,15 @@ def get_by_booking(booking_id: int, db: Session = Depends(get_db)) -> PaymentDet
     return paymentController.get_by_booking_id(db, booking_id)
 
 
-@router.get("/mock/{payment_id}/page", response_class=HTMLResponse)
-def mock_pay_page(payment_id: int, db: Session = Depends(get_db)) -> HTMLResponse:
+@router.get("/{payment_id}/checkout", response_class=HTMLResponse)
+def payment_checkout_page(payment_id: int, db: Session = Depends(get_db)) -> HTMLResponse:
     payment = paymentController.get_by_id(db, payment_id)
     amount = f"{float(payment.amount):,.0f} VND"
     html = f"""<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="utf-8">
-    <title>VNPay Mock — Payment #{payment_id}</title>
+    <title>VNPay — Payment #{payment_id}</title>
     <style>
       * {{ box-sizing: border-box; }}
       body {{
@@ -134,7 +134,7 @@ def mock_pay_page(payment_id: int, db: Session = Depends(get_db)) -> HTMLRespons
   </head>
   <body>
     <div class="card">
-      <div class="header">VNPay — Cổng thanh toán (MOCK)</div>
+      <div class="header">VNPay — Cổng thanh toán</div>
       <div class="body">
         <div class="amount-box">
           <div class="amount-label">Số tiền cần thanh toán</div>
@@ -158,7 +158,7 @@ def mock_pay_page(payment_id: int, db: Session = Depends(get_db)) -> HTMLRespons
         buttons.forEach(b => b.disabled = true);
         const status = document.getElementById('status');
         try {{
-          const res = await fetch('/payments/mock/{payment_id}/confirm', {{
+          const res = await fetch('/payments/{payment_id}/confirm', {{
             method: 'POST',
             headers: {{'Content-Type': 'application/json'}},
             body: JSON.stringify({{success: success}}),
@@ -186,13 +186,13 @@ def mock_pay_page(payment_id: int, db: Session = Depends(get_db)) -> HTMLRespons
     return HTMLResponse(content=html, status_code=200)
 
 
-@router.post("/mock/{payment_id}/confirm", response_model=PaymentDetail)
-def mock_confirm(
+@router.post("/{payment_id}/confirm", response_model=PaymentDetail)
+def confirm_payment(
     payment_id: int,
     payload: ConfirmPaymentRequest,
     db: Session = Depends(get_db),
 ) -> PaymentDetail:
-    return paymentController.mock_confirm(db, payment_id, payload)
+    return paymentController.confirm_payment(db, payment_id, payload)
 
 
 @router.get("/{payment_id}", response_model=PaymentDetail)

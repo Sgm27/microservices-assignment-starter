@@ -104,7 +104,7 @@ export default function ShowtimeBooking() {
         email: user.email,
       });
       navigate(
-        `/mock-pay/${resp.payment_id}?booking_id=${resp.booking_id}`,
+        `/pay/${resp.payment_id}?booking_id=${resp.booking_id}`,
       );
     } catch (err) {
       setError(

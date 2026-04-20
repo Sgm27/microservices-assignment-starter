@@ -43,7 +43,7 @@ def test_create_booking_happy_path_no_voucher(client):
     payment_route = respx.post(f"{PAYMENT}/payments/create").mock(
         return_value=Response(
             201,
-            json={"payment_id": 42, "payment_url": "http://pay/mock/42", "status": "PENDING"},
+            json={"payment_id": 42, "payment_url": "http://pay/42", "status": "PENDING"},
         )
     )
 
@@ -52,7 +52,7 @@ def test_create_booking_happy_path_no_voucher(client):
     body = r.json()
     assert body["booking_id"] >= 1
     assert body["payment_id"] == 42
-    assert body["payment_url"] == "http://pay/mock/42"
+    assert body["payment_url"] == "http://pay/42"
     assert body["status"] == "AWAITING_PAYMENT"
     assert body["workflow_id"] == f"booking-{body['booking_id']}-wf"
     assert body["final_amount"] == "200000.00"  # 2 seats * 100000
@@ -76,7 +76,7 @@ def test_create_booking_with_valid_voucher(client):
     respx.post(f"{PAYMENT}/payments/create").mock(
         return_value=Response(
             201,
-            json={"payment_id": 7, "payment_url": "http://pay/mock/7", "status": "PENDING"},
+            json={"payment_id": 7, "payment_url": "http://pay/7", "status": "PENDING"},
         )
     )
 
@@ -125,7 +125,7 @@ def test_get_booking_and_list_by_user(client):
     respx.post(f"{PAYMENT}/payments/create").mock(
         return_value=Response(
             201,
-            json={"payment_id": 99, "payment_url": "http://pay/mock/99", "status": "PENDING"},
+            json={"payment_id": 99, "payment_url": "http://pay/99", "status": "PENDING"},
         )
     )
 
@@ -153,7 +153,7 @@ def test_cancel_booking_releases_seats(client):
     respx.post(f"{PAYMENT}/payments/create").mock(
         return_value=Response(
             201,
-            json={"payment_id": 1, "payment_url": "http://pay/mock/1", "status": "PENDING"},
+            json={"payment_id": 1, "payment_url": "http://pay/1", "status": "PENDING"},
         )
     )
     release = respx.post(f"{MOVIE}/seats/release").mock(return_value=Response(200, json={"ok": True}))

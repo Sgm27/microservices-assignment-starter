@@ -27,7 +27,7 @@
         - Duyệt phim và suất chiếu: xem danh sách phim, chi tiết phim, suất chiếu, ghế còn trống.
         - Giữ ghế tạm thời (PENDING) trong khi thanh toán.
         - Áp mã giảm giá: lấy danh sách voucher, validate, áp dụng vào giá vé.
-        - Tích hợp thanh toán: khởi tạo giao dịch (mock hoặc VNPay), xử lý callback/IPN.
+        - Tích hợp thanh toán: khởi tạo giao dịch VNPay, xử lý callback/IPN.
         - Xác nhận ghế (BOOKED) + gửi email thông báo khi thanh toán thành công.
         - Compensation (release ghế) khi thanh toán thất bại hoặc timeout.
     - Out of scope:
@@ -79,9 +79,9 @@
 | 9 | Reserve ghế (giữ tạm) | Hệ thống | Chuyển ghế AVAILABLE → PENDING trong transaction; fail nếu không còn available. | ✅ |
 | 10 | Tạo payment record | Hệ thống | Tạo payment status PENDING, lấy payment_url. | ✅ |
 | 11 | Persist booking AWAITING_PAYMENT | Hệ thống | Lưu booking record với status AWAITING_PAYMENT + workflow_id. | ✅ |
-| 12 | Điều hướng thanh toán | Hệ thống | Redirect khách sang payment_url (mock page hoặc VNPay sandbox). | ✅ |
-| 13 | Thanh toán | Khách hàng | Khách hàng thanh toán trên cổng (hoặc mock confirm). | ❌ |
-| 14 | Nhận kết quả thanh toán | Hệ thống | Payment service nhận IPN/return hoặc mock confirm → cập nhật status SUCCESS/FAILED. | ✅ |
+| 12 | Điều hướng thanh toán | Hệ thống | Redirect khách sang payment_url (VNPay). | ✅ |
+| 13 | Thanh toán | Khách hàng | Khách hàng thanh toán trên cổng VNPay. | ❌ |
+| 14 | Nhận kết quả thanh toán | Hệ thống | Payment service nhận IPN/return → cập nhật status SUCCESS/FAILED. | ✅ |
 | 15 | Workflow polling | Hệ thống | Temporal `BookingWorkflow` poll payment status đến SUCCESS/FAILED/timeout 5m. | ✅ |
 | 16 | Confirm ghế (BOOKED) | Hệ thống | Khi payment SUCCESS: chuyển PENDING → BOOKED. | ✅ |
 | 17 | Redeem voucher | Hệ thống | Tăng used_count của voucher. | ✅ |
@@ -242,13 +242,13 @@ Service contract cho từng service. Full OpenAPI specs:
 
 | Endpoint | Method | Media Type | Response Codes |
 |:---|:---|:---|:---|
-| `/payments/create` | POST | `application/json` | 200 OK, 400 Bad Request, 500 Internal Server Error, 503 Service Unavailable |
+| `/payments/create` | POST | `application/json` | 201 Created, 409 Conflict, 422 Unprocessable Entity |
 | `/payments/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
 | `/payments/by-booking/{booking_id}` | GET | `application/json` | 200 OK, 404 Not Found |
-| `/payments/mock/{id}/confirm` | POST | `application/json` | 200 OK, 404 Not Found |
-| `/payments/mock/{id}/page` | GET | `text/html` | 200 OK |
+| `/payments/{id}/confirm` | POST | `application/json` | 200 OK, 400 Bad Request, 404 Not Found |
+| `/payments/{id}/checkout` | GET | `text/html` | 200 OK, 404 Not Found |
 | `/payments/vnpay-return` | GET | `application/json` | 200 OK |
-| `/health` | GET | `text/plain` | 200 OK |
+| `/health` | GET | `application/json` | 200 OK |
 
 #### **Notification Service**
 

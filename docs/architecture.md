@@ -36,7 +36,7 @@
 | **Movie Service** | Quản lý phim, suất chiếu, ghế; reserve/confirm/release seats | Python, FastAPI, SQLAlchemy, MySQL | 5003 |
 | **Voucher Service** | Quản lý mã giảm giá: list / create / validate / redeem | Python, FastAPI, SQLAlchemy, MySQL | 5004 |
 | **Booking Service** | Saga orchestrator — Temporal workflow cho luồng đặt vé, compensation khi fail/timeout | Python, FastAPI, Temporal SDK, MySQL | 5005 |
-| **Payment Service** | Tạo mock/VNPay payment URL, nhận kết quả thanh toán (mock confirm hoặc VNPay IPN) | Python, FastAPI, SQLAlchemy, MySQL | 5006 |
+| **Payment Service** | Tạo VNPay payment URL, nhận kết quả thanh toán (VNPay IPN / return) | Python, FastAPI, SQLAlchemy, MySQL | 5006 |
 | **Notification Service** | Gửi email thông báo booking (mock trong dev) | Python, FastAPI, SQLAlchemy, MySQL | 5007 |
 | **MySQL** | Cơ sở dữ liệu chung — mỗi service sở hữu schema riêng | MySQL 8.0 | 3307 |
 | **Temporal** | Workflow engine cho Saga orchestration; dùng PostgreSQL làm persistent store | Temporal 1.24.2, PostgreSQL 15 | 7233 |

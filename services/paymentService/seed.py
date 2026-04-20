@@ -24,8 +24,8 @@ SEED_PAYMENTS = [
         "booking_id": 9001,
         "amount": Decimal("270000"),
         "status": "COMPLETED",
-        "provider": "mock",
-        "payment_url": "https://mock-vnpay.local/return?txn=DEMO9001",
+        "provider": "vnpay",
+        "payment_url": "https://vnpay.local/return?txn=DEMO9001",
         "provider_txn_id": "DEMO9001",
     },
 ]

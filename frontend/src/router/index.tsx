@@ -4,7 +4,7 @@ import Login from "../views/Login";
 import MovieList from "../views/MovieList";
 import MovieDetail from "../views/MovieDetail";
 import ShowtimeBooking from "../views/ShowtimeBooking";
-import MockPay from "../views/MockPay";
+import PaymentCheckout from "../views/PaymentCheckout";
 import PaymentResult from "../views/PaymentResult";
 import MyBookings from "../views/MyBookings";
 
@@ -23,10 +23,10 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/mock-pay/:id"
+        path="/pay/:id"
         element={
           <PrivateRoute>
-            <MockPay />
+            <PaymentCheckout />
           </PrivateRoute>
         }
       />

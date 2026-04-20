@@ -63,7 +63,7 @@ frontend/
     router/        # route definitions
     styles/        # global.css
     types/         # shared TS types
-    views/         # one file per page (MovieList, MovieDetail, ShowtimeBooking, MockPay, ...)
+    views/         # one file per page (MovieList, MovieDetail, ShowtimeBooking, PaymentCheckout, ...)
   tests/           # vitest smoke tests
 ```
 
@@ -72,8 +72,8 @@ frontend/
 1. `GET /movies` on the home page -> click a movie -> `GET /movies/{id}`
 2. Pick a showtime -> `GET /showtimes/{id}` + `GET /showtimes/{id}/seats`
 3. Select seats, optionally apply a voucher (`POST /vouchers/validate`)
-4. `POST /bookings` -> redirect to `/mock-pay/{payment_id}`
-5. "Pay" button calls `POST /payments/mock/{id}/confirm { success: true }`
+4. `POST /bookings` -> redirect to `/pay/{payment_id}`
+5. "Pay" button calls `POST /payments/{id}/confirm { success: true }`
 6. Redirect to `/booking/payment-result?booking_id=...` which polls
    `GET /bookings/{id}` every 2s (up to 15 tries) until a terminal status
    (`ACTIVE`, `CANCELLED`, `FAILED`).
@@ -84,6 +84,6 @@ frontend/
   backend service.
 - Auth token is stored in `localStorage` under `token`; the axios
   interceptor adds `Authorization: Bearer <token>` automatically.
-- Protected routes (`/bookings`, `/showtimes/:id/book`, `/mock-pay/:id`,
+- Protected routes (`/bookings`, `/showtimes/:id/book`, `/pay/:id`,
   `/booking/payment-result`) redirect to `/login` when no token is
   present.

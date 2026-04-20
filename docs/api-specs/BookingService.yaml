@@ -19,6 +19,14 @@ paths:
       responses:
         "200":
           description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
 
   /bookings:
     post:
@@ -31,48 +39,53 @@ paths:
             schema:
               $ref: "#/components/schemas/BookingCreateRequest"
       responses:
-        "200":
+        "201":
           description: Khởi tạo thành công; workflow đã start
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/BookingCreateResponse"
         "400":
-          description: Thiếu hoặc sai tham số
+          description: Mã giảm giá không hợp lệ hoặc tham số sai
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Không tìm thấy showtime
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Ghế không còn AVAILABLE
+          description: Ghế đã được đặt
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "503":
-          description: Service phụ thuộc (movie/payment/voucher) không khả dụng
+        "502":
+          description: Dịch vụ phụ thuộc (voucher/payment) lỗi
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Lỗi server
+        "422":
+          description: Validation error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /bookings/{id}:
+  /bookings/{booking_id}:
     get:
       summary: Lấy chi tiết booking theo id
       operationId: getBookingById
       parameters:
-        - name: id
+        - name: booking_id
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
       responses:
         "200":
           description: Chi tiết booking
@@ -96,11 +109,10 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
       responses:
         "200":
-          description: Danh sách booking
+          description: Danh sách booking (order by created_at desc)
           content:
             application/json:
               schema:
@@ -108,17 +120,16 @@ paths:
                 items:
                   $ref: "#/components/schemas/Booking"
 
-  /bookings/{id}/cancel:
+  /bookings/{booking_id}/cancel:
     post:
       summary: Hủy booking (user-initiated); trigger compensation release seats
       operationId: cancelBooking
       parameters:
-        - name: id
+        - name: booking_id
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
       responses:
         "200":
           description: Hủy thành công
@@ -126,14 +137,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Booking"
-        "404":
-          description: Không tìm thấy booking
+        "400":
+          description: Booking đang ở trạng thái ACTIVE/CANCELLED — không thể hủy
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "409":
-          description: Booking không ở trạng thái có thể hủy
+        "404":
+          description: Không tìm thấy booking
           content:
             application/json:
               schema:
@@ -146,16 +157,19 @@ components:
       required:
         - user_id
         - showtime_id
-        - seat_ids
+        - seat_numbers
         - email
       properties:
         user_id:
-          type: string
-          format: uuid
+          type: integer
+          minimum: 1
         showtime_id:
-          type: string
-        seat_ids:
+          type: integer
+          minimum: 1
+        seat_numbers:
           type: array
+          minItems: 1
+          maxItems: 10
           items:
             type: string
         email:
@@ -164,36 +178,46 @@ components:
         voucher_code:
           type: string
           nullable: true
-          example: "SUMMER20"
+          example: "WELCOME10"
 
     BookingCreateResponse:
       type: object
+      required:
+        - booking_id
+        - payment_id
+        - payment_url
+        - status
+        - final_amount
       properties:
-        message:
-          type: string
-          example: "Booking initiated. Please complete payment."
         booking_id:
-          type: string
-          format: uuid
+          type: integer
         workflow_id:
           type: string
+          nullable: true
           description: Temporal workflow id
+        payment_id:
+          type: integer
         payment_url:
           type: string
-          example: "http://localhost:5006/payments/mock/abc/page"
+          example: "http://localhost:5006/payments/12/checkout"
+        status:
+          type: string
+          example: "AWAITING_PAYMENT"
+        final_amount:
+          type: string
+          description: Decimal serialize thành chuỗi (Pydantic v2 default), ví dụ "180000.00"
+          pattern: '^\d+(\.\d+)?$'
 
     Booking:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
         user_id:
-          type: string
-          format: uuid
+          type: integer
         showtime_id:
-          type: string
-        seat_ids:
+          type: integer
+        seat_numbers:
           type: array
           items:
             type: string
@@ -203,24 +227,30 @@ components:
         voucher_code:
           type: string
           nullable: true
-        original_price:
-          type: number
-          format: double
-        discount_amount:
-          type: number
-          format: double
-        final_price:
-          type: number
-          format: double
-        payment_id:
+        original_amount:
           type: string
+          description: Decimal serialize thành chuỗi
+          pattern: '^\d+(\.\d+)?$'
+        discount_amount:
+          type: string
+          description: Decimal serialize thành chuỗi
+          pattern: '^\d+(\.\d+)?$'
+        final_amount:
+          type: string
+          description: Decimal serialize thành chuỗi
+          pattern: '^\d+(\.\d+)?$'
+        payment_id:
+          type: integer
           nullable: true
         workflow_id:
           type: string
           nullable: true
         status:
           type: string
-          enum: [AWAITING_PAYMENT, ACTIVE, CANCELLED]
+          enum: [PENDING, AWAITING_PAYMENT, ACTIVE, CANCELLED, FAILED]
+        failure_reason:
+          type: string
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -231,6 +261,6 @@ components:
     ErrorResponse:
       type: object
       properties:
-        message:
+        detail:
           type: string
           example: "Error message"

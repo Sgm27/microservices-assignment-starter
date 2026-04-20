@@ -60,11 +60,11 @@ def test_unknown_prefix_returns_404(client):
 
 
 @respx.mock
-def test_payments_mock_page_is_public(client):
-    respx.get("http://payment.test/payments/mock/3/page").mock(
+def test_payments_checkout_page_is_public(client):
+    respx.get("http://payment.test/payments/3/checkout").mock(
         return_value=Response(200, text="<html>Pay</html>", headers={"content-type": "text/html"})
     )
-    r = client.get("/payments/mock/3/page")
+    r = client.get("/payments/3/checkout")
     assert r.status_code == 200
     assert "Pay" in r.text
 

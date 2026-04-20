@@ -1,6 +1,6 @@
 import apiClient from "./client";
 
-export type MockPayResponse = {
+export type ConfirmPaymentResponse = {
   status: string;
   message?: string;
 };
@@ -15,12 +15,12 @@ export type PaymentDetail = {
   provider_txn_id?: string | null;
 };
 
-export async function confirmMockPayment(
+export async function confirmPayment(
   paymentId: string,
   success: boolean,
-): Promise<MockPayResponse> {
-  const { data } = await apiClient.post<MockPayResponse>(
-    `/payments/mock/${paymentId}/confirm`,
+): Promise<ConfirmPaymentResponse> {
+  const { data } = await apiClient.post<ConfirmPaymentResponse>(
+    `/payments/${paymentId}/confirm`,
     { success },
   );
   return data;

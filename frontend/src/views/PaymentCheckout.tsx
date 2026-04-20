@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { confirmMockPayment, getPayment, type PaymentDetail } from "../api/payments";
+import { confirmPayment, getPayment, type PaymentDetail } from "../api/payments";
 
-export default function MockPay() {
+export default function PaymentCheckout() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -25,7 +25,7 @@ export default function MockPay() {
     setSubmitting(success ? "pay" : "cancel");
     setError(null);
     try {
-      await confirmMockPayment(id, success);
+      await confirmPayment(id, success);
       navigate(`/booking/payment-result?booking_id=${bookingId}`);
     } catch (err) {
       setError(
@@ -44,21 +44,21 @@ export default function MockPay() {
     : "—";
 
   return (
-    <div className="vnpay-mock">
-      <div className="vnpay-mock__card">
-        <div className="vnpay-mock__header">VNPay — Cổng thanh toán (MOCK)</div>
-        <div className="vnpay-mock__body">
-          <div className="vnpay-mock__amount">
-            <div className="vnpay-mock__amount-label">Số tiền cần thanh toán</div>
-            <div className="vnpay-mock__amount-value">{amountLabel}</div>
+    <div className="vnpay-checkout">
+      <div className="vnpay-checkout__card">
+        <div className="vnpay-checkout__header">VNPay — Cổng thanh toán</div>
+        <div className="vnpay-checkout__body">
+          <div className="vnpay-checkout__amount">
+            <div className="vnpay-checkout__amount-label">Số tiền cần thanh toán</div>
+            <div className="vnpay-checkout__amount-value">{amountLabel}</div>
           </div>
-          <div className="vnpay-mock__qr">
+          <div className="vnpay-checkout__qr">
             <img src="/vnpay-qr.png" alt="VNPay QR Code" />
           </div>
-          <p className="vnpay-mock__hint">
+          <p className="vnpay-checkout__hint">
             Quét mã QR bằng ứng dụng ngân hàng để thanh toán
           </p>
-          <div className="vnpay-mock__actions">
+          <div className="vnpay-checkout__actions">
             <button
               type="button"
               className="btn btn-primary"
@@ -77,7 +77,7 @@ export default function MockPay() {
             </button>
           </div>
           {error && <p className="error">{error}</p>}
-          <div className="vnpay-mock__meta">
+          <div className="vnpay-checkout__meta">
             Payment ID: {id}
             {bookingId && ` · Booking ID: ${bookingId}`}
           </div>

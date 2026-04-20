@@ -8,7 +8,6 @@ sys.path.insert(0, str(ROOT))
 
 # Force test settings BEFORE importing any src module.
 os.environ["SQLALCHEMY_URL"] = "sqlite:///:memory:"
-os.environ["PAYMENT_MOCK"] = "true"
 os.environ["SELF_BASE_URL"] = "http://testserver"
 
 import pytest  # noqa: E402

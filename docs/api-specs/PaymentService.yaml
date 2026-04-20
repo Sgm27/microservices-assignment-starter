@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Payment Service API
   description: |
-    Tạo mock/VNPay payment URL, nhận kết quả thanh toán và expose trạng thái
+    Tạo VNPay payment URL, nhận kết quả thanh toán và expose trạng thái
     cho booking service polling. Đây là Data Owner của entity Payment.
   version: 1.0.0
 
@@ -17,10 +17,18 @@ paths:
       responses:
         "200":
           description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
 
   /payments/create:
     post:
-      summary: Tạo payment record + trả payment_url (mock/VNPay)
+      summary: Tạo payment record + trả payment_url
       operationId: createPayment
       requestBody:
         required: true
@@ -29,42 +37,35 @@ paths:
             schema:
               $ref: "#/components/schemas/PaymentCreateRequest"
       responses:
-        "200":
+        "201":
           description: Tạo thành công
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaymentCreateResponse"
-        "400":
-          description: Thiếu hoặc sai tham số
+        "409":
+          description: Đơn thanh toán đã tồn tại cho booking_id này
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Lỗi server
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "503":
-          description: Payment gateway không khả dụng
+        "422":
+          description: Validation error (thiếu/sai tham số)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /payments/{id}:
+  /payments/{payment_id}:
     get:
       summary: Xem payment theo id
       operationId: getPaymentById
       parameters:
-        - name: id
+        - name: payment_id
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
       responses:
         "200":
           description: Payment detail
@@ -88,8 +89,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
       responses:
         "200":
           description: Payment detail
@@ -104,23 +104,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /payments/mock/{id}/confirm:
+  /payments/{payment_id}/confirm:
     post:
-      summary: Mock — đánh dấu payment là SUCCESS/FAILED (test/dev only)
-      operationId: mockConfirmPayment
+      summary: Đánh dấu payment là SUCCESS / FAILED
+      operationId: confirmPayment
       parameters:
-        - name: id
+        - name: payment_id
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/MockConfirmRequest"
+              $ref: "#/components/schemas/ConfirmPaymentRequest"
       responses:
         "200":
           description: Đánh dấu thành công
@@ -128,6 +127,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Payment"
+        "400":
+          description: Payment đã ở trạng thái terminal (SUCCESS / FAILED / CANCELLED)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Không tìm thấy payment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /payments/{payment_id}/checkout:
+    get:
+      summary: HTML trang cổng thanh toán VNPay
+      operationId: paymentCheckoutPage
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: HTML trang thanh toán
+          content:
+            text/html:
+              schema:
+                type: string
         "404":
           description: Không tìm thấy payment
           content:
@@ -135,28 +170,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /payments/mock/{id}/page:
-    get:
-      summary: HTML page mô phỏng trang thanh toán (mock only)
-      operationId: mockPaymentPage
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: HTML trang mock
-          content:
-            text/html:
-              schema:
-                type: string
-
   /payments/vnpay-return:
     get:
-      summary: VNPay return/IPN endpoint (skeleton)
+      summary: VNPay return/IPN endpoint
       operationId: vnpayReturn
       parameters:
         - name: vnp_TxnRef
@@ -171,7 +187,16 @@ paths:
             type: string
       responses:
         "200":
-          description: Xử lý return/IPN
+          description: Trả redirect_url + status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  redirect_url:
+                    type: string
+                  status:
+                    type: string
 
 components:
   schemas:
@@ -182,54 +207,66 @@ components:
         - amount
       properties:
         booking_id:
-          type: string
-          format: uuid
+          type: integer
+          exclusiveMinimum: 0
         amount:
-          type: number
-          format: double
-        method:
+          description: >
+            Decimal. Pydantic chấp nhận số (vd 150000) hoặc chuỗi (vd "150000.00").
+          oneOf:
+            - type: number
+              exclusiveMinimum: 0
+            - type: string
+              pattern: '^\d+(\.\d+)?$'
+        return_url:
           type: string
-          enum: [MOCK, VNPAY]
-          default: MOCK
+          nullable: true
 
     PaymentCreateResponse:
       type: object
+      required:
+        - payment_id
+        - payment_url
+        - status
       properties:
         payment_id:
-          type: string
-          format: uuid
+          type: integer
         payment_url:
           type: string
-          example: "http://localhost:5006/payments/mock/abc/page"
+          example: "http://localhost:5006/payments/12/checkout"
+        status:
+          type: string
+          example: "PENDING"
 
-    MockConfirmRequest:
+    ConfirmPaymentRequest:
       type: object
       required:
-        - result
+        - success
       properties:
-        result:
-          type: string
-          enum: [SUCCESS, FAILED]
+        success:
+          type: boolean
+          description: "true → SUCCESS; false → FAILED"
 
     Payment:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
         booking_id:
-          type: string
-          format: uuid
+          type: integer
         amount:
-          type: number
-          format: double
-        method:
           type: string
-          enum: [MOCK, VNPAY]
+          description: Decimal serialize thành chuỗi (Pydantic v2 default), ví dụ "150000.00"
+          pattern: '^\d+(\.\d+)?$'
         status:
           type: string
-          enum: [PENDING, SUCCESS, FAILED]
+          enum: [PENDING, SUCCESS, FAILED, CANCELLED]
+        provider:
+          type: string
+          example: "vnpay"
         payment_url:
+          type: string
+          nullable: true
+        provider_txn_id:
           type: string
           nullable: true
         created_at:
@@ -242,6 +279,6 @@ components:
     ErrorResponse:
       type: object
       properties:
-        message:
+        detail:
           type: string
           example: "Error message"

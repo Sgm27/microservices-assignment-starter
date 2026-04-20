@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     DB_NAME: str = "payment_db"
     SQLALCHEMY_URL: Optional[str] = None
 
-    PAYMENT_MOCK: bool = True
     VNPAY_TMN_CODE: str = ""
     VNPAY_HASH_SECRET: str = ""
     VNPAY_PAYMENT_URL: str = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"

@@ -2,11 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..config.settings import get_settings
-from ..helpers.vnpayHelper import (
-    build_mock_payment_url,
-    build_vnpay_payment_url,
-    is_mock_mode,
-)
+from ..helpers.vnpayHelper import build_payment_url
 from ..models.paymentModel import Payment
 from ..validators.paymentSchemas import (
     ConfirmPaymentRequest,
@@ -33,22 +29,18 @@ def create_payment(db: Session, payload: CreatePaymentRequest) -> CreatePaymentR
         )
 
     settings = get_settings()
-    mock = is_mock_mode(settings)
 
     payment = Payment(
         booking_id=payload.booking_id,
         amount=payload.amount,
         status="PENDING",
-        provider="mock" if mock else "vnpay",
+        provider="vnpay",
     )
     db.add(payment)
     db.commit()
     db.refresh(payment)
 
-    if mock:
-        url = build_mock_payment_url(settings, payment.id)
-    else:
-        url = build_vnpay_payment_url(settings, payment.id, payload.amount)
+    url = build_payment_url(settings, payment.id)
 
     payment.payment_url = url
     db.add(payment)
@@ -82,7 +74,7 @@ def get_by_booking_id(db: Session, booking_id: int) -> PaymentDetail:
     return _to_detail(payment)
 
 
-def mock_confirm(
+def confirm_payment(
     db: Session, payment_id: int, payload: ConfirmPaymentRequest
 ) -> PaymentDetail:
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
@@ -98,7 +90,7 @@ def mock_confirm(
         )
 
     payment.status = "SUCCESS" if payload.success else "FAILED"
-    payment.provider_txn_id = f"mock-{payment.id}"
+    payment.provider_txn_id = f"vnpay-{payment.id}"
     db.add(payment)
     db.commit()
     db.refresh(payment)

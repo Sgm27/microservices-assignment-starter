@@ -49,8 +49,12 @@ def _requires_auth(prefix: str, method: str, path_tail: str) -> bool:
     if prefix == "vouchers" and method == "GET":
         return False
     if prefix == "payments":
-        # Public: mock pay HTML page and VNPay return redirect
-        if path_tail.startswith("mock/") or path_tail == "vnpay-return":
+        # Public: checkout page, confirmation webhook, and VNPay return redirect
+        if (
+            path_tail.endswith("/checkout")
+            or path_tail.endswith("/confirm")
+            or path_tail == "vnpay-return"
+        ):
             return False
     return True
 
