@@ -10,6 +10,9 @@ Thumbs.db
 .idea/
 *.iml
 
+# Mermaid source files for docs/asset diagrams (PNGs are committed, sources are local-only)
+docs/asset/src/
+
 # ==============================
 # Environment & Secrets
 # ==============================
