@@ -17,6 +17,19 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 
 @pytest.fixture
+def db_session():
+    from src.config.database import Base, SessionLocal, engine
+
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture
 def client(monkeypatch):
     # Patch Temporal workflow start so no real server is needed.
     async def _fake_start(workflow_input: dict) -> str:

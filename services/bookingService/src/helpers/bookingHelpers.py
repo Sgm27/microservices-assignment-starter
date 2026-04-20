@@ -120,6 +120,16 @@ def fetch_payment(payment_id: int) -> dict[str, Any]:
     return r.json()
 
 
+def cancel_payment(payment_id: int) -> None:
+    s = _settings()
+    r = httpx.post(
+        f"{s.PAYMENT_SERVICE_URL}/payments/{payment_id}/cancel",
+        timeout=s.HTTP_TIMEOUT_SECONDS,
+    )
+    if r.status_code not in (200, 404):
+        raise DownstreamError(f"cancel_payment failed: {r.status_code} {r.text}")
+
+
 # --- Notification service ---------------------------------------------------
 
 

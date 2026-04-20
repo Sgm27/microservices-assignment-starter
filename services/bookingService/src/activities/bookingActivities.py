@@ -1,11 +1,12 @@
-"""Temporal activities for the booking workflow.
+"""Temporal activities for BookingWorkflow.
 
-Each activity is a thin wrapper around `helpers.bookingHelpers` that also
-updates the local `bookings` table so the HTTP API reflects workflow progress.
-Activities are imported by the worker (src/worker.py) and by tests.
+Each activity is a thin wrapper around `helpers.bookingHelpers`. Some also
+update the local `bookings` table (persist_setup, finalize_booking) so the
+HTTP API reflects workflow progress.
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Optional
 
 from temporalio import activity
@@ -13,14 +14,6 @@ from temporalio import activity
 from ..config.database import SessionLocal
 from ..helpers import bookingHelpers as svc
 from ..models.bookingModel import Booking
-
-
-def _load_booking(booking_id: int) -> Booking | None:
-    db = SessionLocal()
-    try:
-        return db.query(Booking).filter(Booking.id == booking_id).first()
-    finally:
-        db.close()
 
 
 def _update_booking(booking_id: int, **fields) -> None:
@@ -36,11 +29,49 @@ def _update_booking(booking_id: int, **fields) -> None:
         db.close()
 
 
-@activity.defn(name="check_payment_status")
-async def check_payment_status(payment_id: int) -> str:
-    """Return the current payment status (PENDING / SUCCESS / FAILED / CANCELLED)."""
-    payment = svc.fetch_payment(payment_id)
-    return str(payment.get("status", "PENDING"))
+# --- Setup activities --------------------------------------------------------
+
+
+@activity.defn(name="reserve_seats_activity")
+async def reserve_seats_activity(
+    booking_id: int, showtime_id: int, seat_numbers: list[str]
+) -> None:
+    svc.reserve_seats(showtime_id, seat_numbers, booking_id)
+
+
+@activity.defn(name="validate_voucher_activity")
+async def validate_voucher_activity(code: str, base_amount: str) -> dict:
+    result = svc.validate_voucher(code, Decimal(base_amount))
+    return {
+        "valid": bool(result.get("valid")),
+        "discount_amount": str(result.get("discount_amount") or "0"),
+        "message": result.get("message") or "",
+    }
+
+
+@activity.defn(name="create_payment_activity")
+async def create_payment_activity(booking_id: int, amount: str) -> dict:
+    result = svc.create_payment(booking_id, Decimal(amount))
+    return {
+        "payment_id": int(result["payment_id"]),
+        "payment_url": str(result["payment_url"]),
+    }
+
+
+@activity.defn(name="persist_setup_activity")
+async def persist_setup_activity(
+    booking_id: int, payment_id: int, discount_amount: str, final_amount: str
+) -> None:
+    _update_booking(
+        booking_id,
+        payment_id=payment_id,
+        discount_amount=Decimal(discount_amount),
+        final_amount=Decimal(final_amount),
+        status="AWAITING_PAYMENT",
+    )
+
+
+# --- Compensation / completion activities ------------------------------------
 
 
 @activity.defn(name="confirm_seats_activity")
@@ -59,6 +90,11 @@ async def redeem_voucher_activity(code: Optional[str]) -> None:
         svc.redeem_voucher(code)
 
 
+@activity.defn(name="cancel_payment_activity")
+async def cancel_payment_activity(payment_id: int) -> None:
+    svc.cancel_payment(payment_id)
+
+
 @activity.defn(name="send_notification_activity")
 async def send_notification_activity(
     user_id: int, email: str, subject: str, body: str
@@ -74,10 +110,14 @@ async def finalize_booking_activity(
 
 
 ALL_ACTIVITIES = [
-    check_payment_status,
+    reserve_seats_activity,
+    validate_voucher_activity,
+    create_payment_activity,
+    persist_setup_activity,
     confirm_seats_activity,
     release_seats_activity,
     redeem_voucher_activity,
+    cancel_payment_activity,
     send_notification_activity,
     finalize_booking_activity,
 ]
