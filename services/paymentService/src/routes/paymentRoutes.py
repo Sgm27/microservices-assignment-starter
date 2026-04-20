@@ -195,6 +195,11 @@ def confirm_payment(
     return paymentController.confirm_payment(db, payment_id, payload)
 
 
+@router.post("/{payment_id}/cancel", response_model=PaymentDetail)
+def cancel(payment_id: int, db: Session = Depends(get_db)):
+    return paymentController.cancel_payment(db, payment_id)
+
+
 @router.get("/{payment_id}", response_model=PaymentDetail)
 def get_payment(payment_id: int, db: Session = Depends(get_db)) -> PaymentDetail:
     return paymentController.get_by_id(db, payment_id)

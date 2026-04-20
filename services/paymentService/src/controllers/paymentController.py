@@ -95,3 +95,23 @@ def confirm_payment(
     db.commit()
     db.refresh(payment)
     return _to_detail(payment)
+
+
+def cancel_payment(db: Session, payment_id: int) -> PaymentDetail:
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không tìm thấy đơn thanh toán",
+        )
+    if payment.status == "SUCCESS":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Không thể huỷ payment đã hoàn tất",
+        )
+    if payment.status != "CANCELLED":
+        payment.status = "CANCELLED"
+        db.add(payment)
+        db.commit()
+        db.refresh(payment)
+    return _to_detail(payment)

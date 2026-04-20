@@ -99,3 +99,51 @@ def test_checkout_page_renders(client):
     assert r.status_code == 200
     assert "text/html" in r.headers["content-type"]
     assert "VNPay" in r.text
+
+
+def test_cancel_pending_payment(client):
+    created = _create(client, booking_id=1001, amount="100000.00").json()
+
+    r = client.post(f"/payments/{created['payment_id']}/cancel")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["id"] == created["payment_id"]
+    assert body["status"] == "CANCELLED"
+
+
+def test_cancel_idempotent_when_already_cancelled(client):
+    created = _create(client, booking_id=1002, amount="100000.00").json()
+
+    first = client.post(f"/payments/{created['payment_id']}/cancel")
+    assert first.status_code == 200
+
+    second = client.post(f"/payments/{created['payment_id']}/cancel")
+    assert second.status_code == 200
+    assert second.json()["status"] == "CANCELLED"
+
+
+def test_cancel_failed_payment(client):
+    created = _create(client, booking_id=1003, amount="100000.00").json()
+
+    r1 = client.post(f"/payments/{created['payment_id']}/confirm", json={"success": False})
+    assert r1.status_code == 200
+    assert r1.json()["status"] == "FAILED"
+
+    r2 = client.post(f"/payments/{created['payment_id']}/cancel")
+    assert r2.status_code == 200
+    assert r2.json()["status"] == "CANCELLED"
+
+
+def test_cancel_success_rejected(client):
+    created = _create(client, booking_id=1004, amount="100000.00").json()
+
+    r1 = client.post(f"/payments/{created['payment_id']}/confirm", json={"success": True})
+    assert r1.status_code == 200
+
+    r2 = client.post(f"/payments/{created['payment_id']}/cancel")
+    assert r2.status_code == 409
+
+
+def test_cancel_not_found(client):
+    r = client.post("/payments/99999/cancel")
+    assert r.status_code == 404
