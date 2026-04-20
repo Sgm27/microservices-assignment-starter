@@ -3,10 +3,11 @@ import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+# Imported as a module alias so tests can monkeypatch signal_payment_completed
+# on the module object (direct `from module import func` would bind the name locally
+# and defeat monkeypatching).
 from ..config import temporalClient as _temporal_client
 from ..config.settings import get_settings
-
-log = logging.getLogger(__name__)
 from ..helpers.vnpayHelper import build_payment_url
 from ..models.paymentModel import Payment
 from ..validators.paymentSchemas import (
@@ -15,6 +16,8 @@ from ..validators.paymentSchemas import (
     CreatePaymentResponse,
     PaymentDetail,
 )
+
+log = logging.getLogger(__name__)
 
 FINAL_STATUSES = {"SUCCESS", "FAILED", "CANCELLED"}
 

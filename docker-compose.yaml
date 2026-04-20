@@ -205,7 +205,6 @@ services:
       BOOKING_SERVICE_URL: ${BOOKING_SERVICE_URL}
       TEMPORAL_HOST: ${TEMPORAL_HOST:-temporal:7233}
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE:-default}
-      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE:-booking-task-queue}
     depends_on:
       mysql-db:
         condition: service_healthy

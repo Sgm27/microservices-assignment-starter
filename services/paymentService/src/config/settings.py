@@ -25,7 +25,6 @@ class Settings(BaseSettings):
 
     TEMPORAL_HOST: str = "temporal:7233"
     TEMPORAL_NAMESPACE: str = "default"
-    TEMPORAL_TASK_QUEUE: str = "booking-task-queue"
 
     @property
     def database_url(self) -> str:
