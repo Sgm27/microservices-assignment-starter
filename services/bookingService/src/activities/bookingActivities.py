@@ -25,6 +25,9 @@ def _update_booking(booking_id: int, **fields) -> None:
         for k, v in fields.items():
             setattr(booking, k, v)
         db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -42,9 +45,10 @@ async def reserve_seats_activity(
 @activity.defn(name="validate_voucher_activity")
 async def validate_voucher_activity(code: str, base_amount: str) -> dict:
     result = svc.validate_voucher(code, Decimal(base_amount))
+    raw_discount = result.get("discount_amount")
     return {
         "valid": bool(result.get("valid")),
-        "discount_amount": str(result.get("discount_amount") or "0"),
+        "discount_amount": str(raw_discount) if raw_discount is not None else "0",
         "message": result.get("message") or "",
     }
 

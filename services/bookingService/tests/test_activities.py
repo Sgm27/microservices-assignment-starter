@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
+import pytest
 import respx
 from httpx import Response
 
@@ -15,7 +17,7 @@ NOTIFY = "http://notification-service.test"
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro) if False else asyncio.run(coro)
+    return asyncio.run(coro)
 
 
 @respx.mock
@@ -86,20 +88,18 @@ def test_reserve_seats_activity_calls_movie_service():
     assert route.called
     # Verify payload shape
     call = route.calls.last
-    import json
     body = json.loads(call.request.content)
     assert body == {"showtime_id": 11, "seat_numbers": ["A1", "A2"], "booking_id": 5}
 
 
 @respx.mock
 def test_reserve_seats_activity_raises_on_conflict():
-    import pytest as _pt
     from src.helpers.bookingHelpers import DownstreamError
 
     respx.post(f"{MOVIE}/seats/reserve").mock(
         return_value=Response(409, json={"detail": "seat taken"})
     )
-    with _pt.raises(DownstreamError):
+    with pytest.raises(DownstreamError):
         _run(acts.reserve_seats_activity(booking_id=5, showtime_id=11, seat_numbers=["A1"]))
 
 
