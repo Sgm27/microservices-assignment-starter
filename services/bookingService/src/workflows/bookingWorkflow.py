@@ -207,6 +207,7 @@ class BookingWorkflow:
                 args=[booking_id, "ACTIVE", None],
                 start_to_close_timeout=ACTIVITY_TIMEOUT,
             )
+            self._state = "confirmed"
             return "ACTIVE"
 
         # --- 6b. Compensation path (signal False or timeout) -----------------
@@ -225,4 +226,5 @@ class BookingWorkflow:
             args=[booking_id, "CANCELLED", reason],
             start_to_close_timeout=ACTIVITY_TIMEOUT,
         )
+        self._state = "cancelled"
         return "CANCELLED"

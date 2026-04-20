@@ -119,6 +119,9 @@ async def _run_workflow(
                 if state == "failed":
                     break
                 await env.sleep(1)
+            assert state == "awaiting_payment", (
+                f"expected awaiting_payment before sending signal, got {state!r}"
+            )
             await handle.signal("payment_completed", signal_success)
         elif time_skip_seconds > 0:
             # reach awaiting_payment first, then skip past the timeout
@@ -156,7 +159,7 @@ async def test_happy_path_signal_success(env):
     )
 
     assert result == "ACTIVE"
-    assert final["state"] == "awaiting_payment"
+    assert final["state"] == "confirmed"
     assert final["payment_url"] == "http://x/77"
     assert len(spies["confirm_seats_activity"].calls) == 1
     assert len(spies["send_notification_activity"].calls) == 1
