@@ -516,3 +516,91 @@ textarea:focus {
   border-color: var(--danger);
   color: var(--danger);
 }
+
+.vnpay-mock {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.vnpay-mock__card {
+  background: #fff;
+  color: #111827;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+}
+
+.vnpay-mock__header {
+  background: #0b2d6b;
+  color: #fff;
+  padding: 16px 24px;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
+.vnpay-mock__body {
+  padding: 24px;
+  text-align: center;
+}
+
+.vnpay-mock__amount {
+  background: #f5f7fb;
+  border: 1px solid #e1e6f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+}
+
+.vnpay-mock__amount-label {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.vnpay-mock__amount-value {
+  color: #d32027;
+  font-size: 24px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.vnpay-mock__qr {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 8px;
+}
+
+.vnpay-mock__qr img {
+  max-width: 280px;
+  width: 100%;
+  height: auto;
+  border: 1px solid #e1e6f0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.vnpay-mock__hint {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 8px 0 20px;
+}
+
+.vnpay-mock__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.vnpay-mock__actions .btn {
+  flex: 1;
+}
+
+.vnpay-mock__meta {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-top: 16px;
+}

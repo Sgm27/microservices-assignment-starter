@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { confirmMockPayment } from "../api/payments";
+import { confirmMockPayment, getPayment, type PaymentDetail } from "../api/payments";
 
 export default function MockPay() {
   const { id } = useParams<{ id: string }>();
@@ -9,6 +9,16 @@ export default function MockPay() {
   const bookingId = searchParams.get("booking_id") ?? "";
   const [submitting, setSubmitting] = useState<"pay" | "cancel" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [payment, setPayment] = useState<PaymentDetail | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    getPayment(id)
+      .then(setPayment)
+      .catch(() => {
+        /* amount is decorative; ignore fetch errors */
+      });
+  }, [id]);
 
   const handle = async (success: boolean) => {
     if (!id) return;
@@ -29,30 +39,50 @@ export default function MockPay() {
     }
   };
 
+  const amountLabel = payment
+    ? `${Number(payment.amount).toLocaleString("vi-VN")} VND`
+    : "—";
+
   return (
-    <div className="card narrow center">
-      <h1>Thanh toán mô phỏng</h1>
-      <p className="muted">Mã thanh toán: {id}</p>
-      {bookingId && <p className="muted">Mã đơn: {bookingId}</p>}
-      <div className="btn-row">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => handle(true)}
-          disabled={submitting !== null}
-        >
-          {submitting === "pay" ? "Đang xử lý…" : "Thanh toán"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => handle(false)}
-          disabled={submitting !== null}
-        >
-          {submitting === "cancel" ? "Đang hủy…" : "Hủy"}
-        </button>
+    <div className="vnpay-mock">
+      <div className="vnpay-mock__card">
+        <div className="vnpay-mock__header">VNPay — Cổng thanh toán (MOCK)</div>
+        <div className="vnpay-mock__body">
+          <div className="vnpay-mock__amount">
+            <div className="vnpay-mock__amount-label">Số tiền cần thanh toán</div>
+            <div className="vnpay-mock__amount-value">{amountLabel}</div>
+          </div>
+          <div className="vnpay-mock__qr">
+            <img src="/vnpay-qr.png" alt="VNPay QR Code" />
+          </div>
+          <p className="vnpay-mock__hint">
+            Quét mã QR bằng ứng dụng ngân hàng để thanh toán
+          </p>
+          <div className="vnpay-mock__actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => handle(true)}
+              disabled={submitting !== null}
+            >
+              {submitting === "pay" ? "Đang xử lý…" : "Đã thanh toán"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => handle(false)}
+              disabled={submitting !== null}
+            >
+              {submitting === "cancel" ? "Đang hủy…" : "Hủy"}
+            </button>
+          </div>
+          {error && <p className="error">{error}</p>}
+          <div className="vnpay-mock__meta">
+            Payment ID: {id}
+            {bookingId && ` · Booking ID: ${bookingId}`}
+          </div>
+        </div>
       </div>
-      {error && <p className="error">{error}</p>}
     </div>
   );
 }
