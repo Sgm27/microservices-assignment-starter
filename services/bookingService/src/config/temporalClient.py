@@ -37,3 +37,9 @@ async def cancel_booking_workflow(workflow_id: str) -> None:
     client = await get_temporal_client()
     handle = client.get_workflow_handle(workflow_id)
     await handle.cancel()
+
+
+async def query_setup_result_async(workflow_id: str) -> dict:
+    client = await get_temporal_client()
+    handle = client.get_workflow_handle(workflow_id)
+    return await handle.query("get_setup_result")

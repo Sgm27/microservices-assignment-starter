@@ -1,7 +1,8 @@
-"""API-level tests for POST /bookings.
+"""API-level tests for /bookings endpoints.
 
-Downstream HTTP calls (movie/voucher/payment) are stubbed with respx.
-Temporal workflow start is patched in conftest.
+The controller calls fetch_showtime (stubbed via respx), then starts a
+Temporal workflow and polls its setup-result query. Tests monkey-patch
+`_wait_for_setup` to simulate workflow outcomes without running Temporal.
 """
 from __future__ import annotations
 
@@ -9,9 +10,6 @@ import respx
 from httpx import Response
 
 MOVIE = "http://movie-service.test"
-VOUCHER = "http://voucher-service.test"
-PAYMENT = "http://payment-service.test"
-NOTIFY = "http://notification-service.test"
 
 
 def _showtime_body(showtime_id: int = 1, base_price: float = 100000.0) -> dict:
@@ -25,7 +23,7 @@ def _showtime_body(showtime_id: int = 1, base_price: float = 100000.0) -> dict:
     }
 
 
-def _create_booking_payload(**overrides) -> dict:
+def _payload(**overrides) -> dict:
     base = {
         "user_id": 1,
         "showtime_id": 1,
@@ -36,100 +34,144 @@ def _create_booking_payload(**overrides) -> dict:
     return base
 
 
+def _override_setup(monkeypatch, result: dict) -> None:
+    """Replace the conftest default setup result for a single test."""
+    from src.controllers import bookingController
+
+    def _fake(workflow_id: str, timeout_s: int = 15) -> dict:
+        return result
+
+    monkeypatch.setattr(bookingController, "_wait_for_setup", _fake)
+
+
+# ----------------------------- Happy path -----------------------------
+
+
 @respx.mock
-def test_create_booking_happy_path_no_voucher(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(200, json=_showtime_body()))
-    respx.post(f"{MOVIE}/seats/reserve").mock(return_value=Response(200, json={"ok": True}))
-    payment_route = respx.post(f"{PAYMENT}/payments/create").mock(
-        return_value=Response(
-            201,
-            json={"payment_id": 42, "payment_url": "http://pay/42", "status": "PENDING"},
-        )
+def test_create_booking_happy_path(client):
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
     )
 
-    r = client.post("/bookings", json=_create_booking_payload())
+    r = client.post("/bookings", json=_payload())
     assert r.status_code == 201, r.text
     body = r.json()
     assert body["booking_id"] >= 1
-    assert body["payment_id"] == 42
-    assert body["payment_url"] == "http://pay/42"
+    assert body["payment_id"] == 777
+    assert body["payment_url"].endswith("/payments/777/checkout")
     assert body["status"] == "AWAITING_PAYMENT"
     assert body["workflow_id"] == f"booking-{body['booking_id']}-wf"
-    assert body["final_amount"] == "200000.00"  # 2 seats * 100000
 
-    # ensure payment got the right amount
-    assert payment_route.called
-    sent_json = payment_route.calls.last.request.read().decode()
-    assert '"amount": 200000.0' in sent_json
+
+# --------------------- Setup error mapping ----------------------------
 
 
 @respx.mock
-def test_create_booking_with_valid_voucher(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(200, json=_showtime_body()))
-    respx.post(f"{MOVIE}/seats/reserve").mock(return_value=Response(200, json={"ok": True}))
-    respx.post(f"{VOUCHER}/vouchers/validate").mock(
-        return_value=Response(
-            200,
-            json={"valid": True, "discount_amount": 20000.0, "final_amount": 180000.0},
-        )
+def test_create_booking_seat_conflict_returns_409(client, monkeypatch):
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
     )
-    respx.post(f"{PAYMENT}/payments/create").mock(
-        return_value=Response(
-            201,
-            json={"payment_id": 7, "payment_url": "http://pay/7", "status": "PENDING"},
-        )
-    )
+    _override_setup(monkeypatch, {
+        "state": "failed",
+        "payment_id": None,
+        "payment_url": None,
+        "error_code": "seat_conflict",
+        "error_message": "Ghế A1 đã được đặt",
+    })
 
-    r = client.post(
-        "/bookings", json=_create_booking_payload(voucher_code="WELCOME10")
-    )
-    assert r.status_code == 201, r.text
-    assert r.json()["final_amount"] == "180000.00"
-
-
-@respx.mock
-def test_create_booking_invalid_voucher_releases_seats(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(200, json=_showtime_body()))
-    respx.post(f"{MOVIE}/seats/reserve").mock(return_value=Response(200, json={"ok": True}))
-    respx.post(f"{VOUCHER}/vouchers/validate").mock(
-        return_value=Response(200, json={"valid": False, "discount_amount": 0, "final_amount": 0, "message": "expired"})
-    )
-    release = respx.post(f"{MOVIE}/seats/release").mock(return_value=Response(200, json={"ok": True}))
-
-    r = client.post("/bookings", json=_create_booking_payload(voucher_code="BAD"))
-    assert r.status_code == 400
-    assert release.called
-
-
-@respx.mock
-def test_create_booking_seat_conflict(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(200, json=_showtime_body()))
-    respx.post(f"{MOVIE}/seats/reserve").mock(return_value=Response(409, json={"detail": "taken"}))
-
-    r = client.post("/bookings", json=_create_booking_payload())
+    r = client.post("/bookings", json=_payload())
     assert r.status_code == 409
+    assert "A1" in r.json()["detail"]
 
 
 @respx.mock
-def test_create_booking_showtime_not_found(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(404, json={"detail": "nope"}))
+def test_create_booking_voucher_invalid_returns_400(client, monkeypatch):
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
+    )
+    _override_setup(monkeypatch, {
+        "state": "failed",
+        "payment_id": None,
+        "payment_url": None,
+        "error_code": "voucher_invalid",
+        "error_message": "Mã giảm giá không hợp lệ",
+    })
 
-    r = client.post("/bookings", json=_create_booking_payload())
+    r = client.post("/bookings", json=_payload(voucher_code="BAD"))
+    assert r.status_code == 400
+
+
+@respx.mock
+def test_create_booking_voucher_downstream_returns_502(client, monkeypatch):
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
+    )
+    _override_setup(monkeypatch, {
+        "state": "failed",
+        "payment_id": None,
+        "payment_url": None,
+        "error_code": "downstream_voucher",
+        "error_message": "voucher-service 500",
+    })
+
+    r = client.post("/bookings", json=_payload(voucher_code="X"))
+    assert r.status_code == 502
+
+
+@respx.mock
+def test_create_booking_payment_downstream_returns_502(client, monkeypatch):
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
+    )
+    _override_setup(monkeypatch, {
+        "state": "failed",
+        "payment_id": None,
+        "payment_url": None,
+        "error_code": "downstream_payment",
+        "error_message": "payment 503",
+    })
+
+    r = client.post("/bookings", json=_payload())
+    assert r.status_code == 502
+
+
+@respx.mock
+def test_create_booking_setup_timeout_returns_502(client, monkeypatch):
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
+    )
+    _override_setup(monkeypatch, {
+        "state": "failed",
+        "payment_id": None,
+        "payment_url": None,
+        "error_code": "setup_timeout",
+        "error_message": "Workflow setup timeout",
+    })
+
+    r = client.post("/bookings", json=_payload())
+    assert r.status_code == 502
+
+
+@respx.mock
+def test_create_booking_showtime_not_found_returns_404(client):
+    respx.get(f"{MOVIE}/showtimes/99").mock(
+        return_value=Response(404, json={"detail": "nope"})
+    )
+
+    r = client.post("/bookings", json=_payload(showtime_id=99))
     assert r.status_code == 404
+
+
+# --------------------- Read endpoints / cancel ------------------------
 
 
 @respx.mock
 def test_get_booking_and_list_by_user(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(200, json=_showtime_body()))
-    respx.post(f"{MOVIE}/seats/reserve").mock(return_value=Response(200, json={"ok": True}))
-    respx.post(f"{PAYMENT}/payments/create").mock(
-        return_value=Response(
-            201,
-            json={"payment_id": 99, "payment_url": "http://pay/99", "status": "PENDING"},
-        )
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
     )
 
-    r = client.post("/bookings", json=_create_booking_payload())
+    r = client.post("/bookings", json=_payload())
     booking_id = r.json()["booking_id"]
 
     g = client.get(f"/bookings/{booking_id}")
@@ -148,17 +190,14 @@ def test_get_booking_not_found(client):
 
 @respx.mock
 def test_cancel_booking_releases_seats(client):
-    respx.get(f"{MOVIE}/showtimes/1").mock(return_value=Response(200, json=_showtime_body()))
-    respx.post(f"{MOVIE}/seats/reserve").mock(return_value=Response(200, json={"ok": True}))
-    respx.post(f"{PAYMENT}/payments/create").mock(
-        return_value=Response(
-            201,
-            json={"payment_id": 1, "payment_url": "http://pay/1", "status": "PENDING"},
-        )
+    respx.get(f"{MOVIE}/showtimes/1").mock(
+        return_value=Response(200, json=_showtime_body())
     )
-    release = respx.post(f"{MOVIE}/seats/release").mock(return_value=Response(200, json={"ok": True}))
+    release = respx.post(f"{MOVIE}/seats/release").mock(
+        return_value=Response(200, json={"ok": True})
+    )
 
-    r = client.post("/bookings", json=_create_booking_payload())
+    r = client.post("/bookings", json=_payload())
     booking_id = r.json()["booking_id"]
 
     c = client.post(f"/bookings/{booking_id}/cancel")

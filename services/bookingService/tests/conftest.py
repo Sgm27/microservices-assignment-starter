@@ -31,13 +31,24 @@ def db_session():
 
 @pytest.fixture
 def client(monkeypatch):
-    # Patch Temporal workflow start so no real server is needed.
     async def _fake_start(workflow_input: dict) -> str:
         return f"booking-{workflow_input['booking_id']}-wf"
 
+    def _fake_wait_for_setup(workflow_id: str, timeout_s: int = 15) -> dict:
+        # Default success — individual tests override via monkeypatch.
+        return {
+            "state": "awaiting_payment",
+            "payment_id": 777,
+            "payment_url": "http://payment-service.test/payments/777/checkout",
+            "error_code": None,
+            "error_message": None,
+        }
+
     from src.config import temporalClient
+    from src.controllers import bookingController
 
     monkeypatch.setattr(temporalClient, "start_booking_workflow", _fake_start)
+    monkeypatch.setattr(bookingController, "_wait_for_setup", _fake_wait_for_setup)
 
     from src.app import app
     from src.config.database import Base, engine
