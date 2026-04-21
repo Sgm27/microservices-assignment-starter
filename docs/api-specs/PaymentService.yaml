@@ -146,6 +146,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /payments/{payment_id}/cancel:
+    post:
+      operationId: cancelPayment
+      summary: Huỷ payment (idempotent)
+      description: |
+        Đánh dấu payment là CANCELLED. Dùng bởi BookingWorkflow compensation
+        khi workflow fail / timeout. Idempotent: gọi lại với payment đã
+        CANCELLED trả 200 no-op. Không được dùng cho payment đã SUCCESS.
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Payment đã ở trạng thái CANCELLED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentDetail"
+        "404":
+          description: Không tìm thấy đơn thanh toán
+        "409":
+          description: Không thể huỷ payment đã hoàn tất
+
   /payments/{payment_id}/checkout:
     get:
       summary: HTML trang cổng thanh toán VNPay
