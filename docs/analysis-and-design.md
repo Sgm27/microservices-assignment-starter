@@ -38,7 +38,7 @@
 
 **Process Diagram:**
 
-<p align="center"><img src="asset-final/flowchart.jpg" alt="Business process flowchart" width="350" /></p>
+<p align="center"><img src="asset/flowchart.jpg" alt="Business process flowchart" width="350" /></p>
 
 ### 1.2 Existing Automation Systems
 
@@ -100,7 +100,7 @@
 | Movie / Showtime / Seat | Movie Service | Liệt kê phim, xem chi tiết, liệt kê ghế, reserve/confirm/release ghế. |
 | Voucher | Voucher Service | Liệt kê voucher, validate, redeem. |
 
-<p align="center"><img src="asset-final/step2_3.png" alt="Entity Service Candidates" width="550" /></p>
+<p align="center"><img src="asset/step2_3.png" alt="Entity Service Candidates" width="550" /></p>
 
 ### 2.4 Task Service Candidate
 
@@ -108,7 +108,7 @@
 |---------------------|------------------------|
 | 1. Reserve ghế<br>2. Validate voucher<br>3. Tạo payment record<br>4. Persist booking AWAITING_PAYMENT<br>5. Chờ `payment_completed` signal (Temporal workflow)<br>6. Confirm ghế + redeem voucher + gửi notification<br>7. Compensation (release ghế + cancel payment + cancel booking) | **Booking Service (Saga Orchestrator)** |
 
-<p align="center"><img src="asset-final/step2_4.png" alt="Task Service Candidate" width="550" /></p>
+<p align="center"><img src="asset/step2_4.png" alt="Task Service Candidate" width="550" /></p>
 
 ### 2.5 Identify Resources
 
@@ -175,7 +175,7 @@
 
 Sequence diagram mô tả cách các Service Candidate cộng tác để hoàn thành luồng đặt vé.
 
-<p align="center"><img src="asset-final/Sequence%20Diagram1.jpg" alt="Service composition sequence diagram" width="650" /></p>
+<p align="center"><img src="asset/Sequence%20Diagram1.jpg" alt="Service composition sequence diagram" width="650" /></p>
 
 ---
 
@@ -271,28 +271,28 @@ Flow nội bộ cho từng service.
 
 **Authentication Service:**
 
-<p align="center"><img src="asset-final/AuthenService.png" alt="Authentication Service" width="500" /></p>
+<p align="center"><img src="asset/AuthenService.png" alt="Authentication Service" width="500" /></p>
 
 **User Service:**
 
-<p align="center"><img src="asset-final/UserService.png" alt="User Service" width="500" /></p>
+<p align="center"><img src="asset/UserService.png" alt="User Service" width="500" /></p>
 
 **Movie Service:**
 
-<p align="center"><img src="asset-final/MovieService.png" alt="Movie Service" width="500" /></p>
+<p align="center"><img src="asset/MovieService.png" alt="Movie Service" width="500" /></p>
 
 **Voucher Service:**
 
-<p align="center"><img src="asset-final/VoucherService.png" alt="Voucher Service" width="500" /></p>
+<p align="center"><img src="asset/VoucherService.png" alt="Voucher Service" width="500" /></p>
 
 **Booking Service:**
 
-<p align="center"><img src="asset-final/BookingService.png" alt="Booking Service" width="450" /></p>
+<p align="center"><img src="asset/BookingService.png" alt="Booking Service" width="450" /></p>
 
 **Payment Service:**
 
-<p align="center"><img src="asset-final/PaymentService.png" alt="Payment Service" width="500" /></p>
+<p align="center"><img src="asset/PaymentService.png" alt="Payment Service" width="500" /></p>
 
 **Notification Service:**
 
-<p align="center"><img src="asset-final/NotificationService.png" alt="Notification Service" width="500" /></p>
+<p align="center"><img src="asset/NotificationService.png" alt="Notification Service" width="500" /></p>
