@@ -10,7 +10,7 @@
 
 ## Business Process
 
-Hệ thống tự động hoá quy trình đặt vé xem phim online từ lúc khách hàng duyệt phim đến khi xác nhận vé. Gồm xác thực người dùng, chọn phim / suất chiếu / ghế, áp voucher, tích hợp thanh toán (mock hoặc VNPay), giữ ghế tạm thời trong khi thanh toán, và gửi email xác nhận. Luồng saga được Temporal workflow orchestrate để đảm bảo consistency: ghế chỉ chuyển sang BOOKED khi thanh toán thành công, và tự động release khi thất bại hoặc timeout. Actors chính là khách hàng; phạm vi tập trung luồng đặt vé và thanh toán, không bao gồm quản lý rạp phòng chiếu hay chương trình loyalty.
+Hệ thống tự động hoá quy trình đặt vé xem phim online từ lúc khách hàng duyệt phim đến khi xác nhận vé. Gồm xác thực người dùng, chọn phim / suất chiếu / ghế, áp voucher, tích hợp thanh toán VNPay, giữ ghế tạm thời trong khi thanh toán, và gửi email xác nhận. Luồng saga được Temporal workflow orchestrate để đảm bảo consistency: ghế chỉ chuyển sang BOOKED khi thanh toán thành công, và tự động release khi thất bại hoặc timeout. Actors chính là khách hàng; phạm vi tập trung luồng đặt vé và thanh toán, không bao gồm quản lý rạp phòng chiếu hay chương trình loyalty.
 
 ## Architecture
 
@@ -45,7 +45,7 @@ graph LR
 | **Movie Service** | Movies, showtimes, seats (reserve/confirm/release) | Python, FastAPI, MySQL | 5003 |
 | **Voucher Service** | List/validate/redeem voucher | Python, FastAPI, MySQL | 5004 |
 | **Booking Service** | Saga orchestrator — Temporal workflow | Python, FastAPI, Temporal SDK, MySQL | 5005 |
-| **Payment Service** | Mock/VNPay payment URL + IPN/return | Python, FastAPI, MySQL | 5006 |
+| **Payment Service** | VNPay payment URL + IPN/return | Python, FastAPI, MySQL | 5006 |
 | **Notification Service** | Gửi email thông báo booking | Python, FastAPI, MySQL | 5007 |
 | **MySQL** | DB per service (mỗi service own schema) | MySQL 8.0 | 3307 |
 | **Temporal** | Workflow engine cho saga orchestration | Temporal 1.24.2 + PostgreSQL 15 | 7233 |

@@ -26,7 +26,7 @@
         - Xác thực người dùng: đăng ký, đăng nhập, lấy thông tin tài khoản.
         - Duyệt phim và suất chiếu: xem danh sách phim, chi tiết phim, suất chiếu, ghế còn trống.
         - Giữ ghế tạm thời (PENDING) trong khi thanh toán.
-        - Áp mã giảm giá: lấy danh sách voucher, validate, áp dụng vào giá vé.
+        - Áp mã giảm giá: nhập mã voucher, validate, áp dụng vào giá vé.
         - Tích hợp thanh toán: khởi tạo giao dịch VNPay, xử lý callback/IPN.
         - Xác nhận ghế (BOOKED) + gửi email thông báo khi thanh toán thành công.
         - Compensation (release ghế) khi thanh toán thất bại hoặc timeout.
@@ -38,7 +38,7 @@
 
 **Process Diagram:**
 
-<p align="center"><img src="asset/flowchart.png" alt="Business process flowchart" width="350" /></p>
+<p align="center"><img src="asset-final/flowchart.jpg" alt="Business process flowchart" width="350" /></p>
 
 ### 1.2 Existing Automation Systems
 
@@ -82,7 +82,7 @@
 | 12 | Điều hướng thanh toán | Hệ thống | Redirect khách sang payment_url (VNPay). | ✅ |
 | 13 | Thanh toán | Khách hàng | Khách hàng thanh toán trên cổng VNPay. | ❌ |
 | 14 | Nhận kết quả thanh toán | Hệ thống | Payment service nhận IPN/return → cập nhật status SUCCESS/FAILED. | ✅ |
-| 15 | Workflow polling | Hệ thống | Temporal `BookingWorkflow` poll payment status đến SUCCESS/FAILED/timeout 5m. | ✅ |
+| 15 | Wait for payment_completed signal | Hệ thống | Temporal `BookingWorkflow` chờ signal `payment_completed` từ PaymentService (timeout 5m). | ✅ |
 | 16 | Confirm ghế (BOOKED) | Hệ thống | Khi payment SUCCESS: chuyển PENDING → BOOKED. | ✅ |
 | 17 | Redeem voucher | Hệ thống | Tăng used_count của voucher. | ✅ |
 | 18 | Gửi thông báo | Hệ thống | Gửi email xác nhận vé qua NotificationService. | ✅ |
@@ -100,15 +100,15 @@
 | Movie / Showtime / Seat | Movie Service | Liệt kê phim, xem chi tiết, liệt kê ghế, reserve/confirm/release ghế. |
 | Voucher | Voucher Service | Liệt kê voucher, validate, redeem. |
 
-<p align="center"><img src="asset/step2_3.png" alt="Entity Service Candidates" width="550" /></p>
+<p align="center"><img src="asset-final/step2_3.png" alt="Entity Service Candidates" width="550" /></p>
 
 ### 2.4 Task Service Candidate
 
 | Non-agnostic Actions | Task Service Candidate |
 |---------------------|------------------------|
-| 1. Reserve ghế<br>2. Validate voucher<br>3. Tạo payment record<br>4. Persist booking AWAITING_PAYMENT<br>5. Poll payment status (Temporal workflow)<br>6. Confirm ghế + redeem voucher + gửi notification<br>7. Compensation (release ghế + cancel booking) | **Booking Service (Saga Orchestrator)** |
+| 1. Reserve ghế<br>2. Validate voucher<br>3. Tạo payment record<br>4. Persist booking AWAITING_PAYMENT<br>5. Chờ `payment_completed` signal (Temporal workflow)<br>6. Confirm ghế + redeem voucher + gửi notification<br>7. Compensation (release ghế + cancel payment + cancel booking) | **Booking Service (Saga Orchestrator)** |
 
-<p align="center"><img src="asset/step2_4.png" alt="Task Service Candidate" width="550" /></p>
+<p align="center"><img src="asset-final/step2_4.png" alt="Task Service Candidate" width="550" /></p>
 
 ### 2.5 Identify Resources
 
@@ -152,9 +152,15 @@
 | Booking Service | Xem booking | `/bookings/{id}` | GET |
 | Booking Service | Cancel booking | `/bookings/{id}/cancel` | POST |
 | Payment Service | Tạo payment | `/payments/create` | POST |
-| Payment Service | Xem payment | `/payments/{id}` | GET |
+| Payment Service | Xem payment theo id | `/payments/{id}` | GET |
+| Payment Service | Xem payment theo booking | `/payments/by-booking/{booking_id}` | GET |
+| Payment Service | Confirm payment SUCCESS/FAILED | `/payments/{id}/confirm` | POST |
+| Payment Service | Cancel payment (idempotent) | `/payments/{id}/cancel` | POST |
+| Payment Service | VNPay checkout HTML page | `/payments/{id}/checkout` | GET |
 | Payment Service | VNPay return/IPN | `/payments/vnpay-return` | GET |
 | Notification Service | Gửi notification | `/notifications/send` | POST |
+| Notification Service | Liệt kê notifications | `/notifications` | GET |
+| Notification Service | Xem notification theo id | `/notifications/{id}` | GET |
 
 ### 2.7 Utility Service & Microservice Candidates
 
@@ -169,7 +175,7 @@
 
 Sequence diagram mô tả cách các Service Candidate cộng tác để hoàn thành luồng đặt vé.
 
-<p align="center"><img src="asset/sequenceDiagram.png" alt="Service composition sequence diagram" width="650" /></p>
+<p align="center"><img src="asset-final/Sequence%20Diagram1.jpg" alt="Service composition sequence diagram" width="650" /></p>
 
 ---
 
@@ -254,7 +260,7 @@ Service contract cho từng service. Full OpenAPI specs:
 
 | Endpoint | Method | Media Type | Response Codes |
 |:---|:---|:---|:---|
-| `/notifications/send` | POST | `application/json` | 202 Accepted, 400 Bad Request, 503 Service Unavailable |
+| `/notifications/send` | POST | `application/json` | 201 Created, 400 Bad Request, 503 Service Unavailable |
 | `/notifications` | GET | `application/json` | 200 OK |
 | `/notifications/{id}` | GET | `application/json` | 200 OK, 404 Not Found |
 | `/health` | GET | `text/plain` | 200 OK |
@@ -265,28 +271,28 @@ Flow nội bộ cho từng service.
 
 **Authentication Service:**
 
-<p align="center"><img src="asset/authen.png" alt="Authentication Service" width="500" /></p>
+<p align="center"><img src="asset-final/AuthenService.png" alt="Authentication Service" width="500" /></p>
 
 **User Service:**
 
-<p align="center"><img src="asset/user.png" alt="User Service" width="500" /></p>
+<p align="center"><img src="asset-final/UserService.png" alt="User Service" width="500" /></p>
 
 **Movie Service:**
 
-<p align="center"><img src="asset/MovieService.png" alt="Movie Service" width="500" /></p>
+<p align="center"><img src="asset-final/MovieService.png" alt="Movie Service" width="500" /></p>
 
 **Voucher Service:**
 
-<p align="center"><img src="asset/VoucherService.png" alt="Voucher Service" width="500" /></p>
+<p align="center"><img src="asset-final/VoucherService.png" alt="Voucher Service" width="500" /></p>
 
 **Booking Service:**
 
-<p align="center"><img src="asset/BookingService.png" alt="Booking Service" width="450" /></p>
+<p align="center"><img src="asset-final/BookingService.png" alt="Booking Service" width="450" /></p>
 
 **Payment Service:**
 
-<p align="center"><img src="asset/PaymentService.png" alt="Payment Service" width="500" /></p>
+<p align="center"><img src="asset-final/PaymentService.png" alt="Payment Service" width="500" /></p>
 
 **Notification Service:**
 
-<p align="center"><img src="asset/notification.png" alt="Notification Service" width="500" /></p>
+<p align="center"><img src="asset-final/NotificationService.png" alt="Notification Service" width="500" /></p>

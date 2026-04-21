@@ -29,8 +29,8 @@ paths:
             schema:
               $ref: "#/components/schemas/NotificationSendRequest"
       responses:
-        "202":
-          description: Đã chấp nhận và queue gửi
+        "201":
+          description: Notification đã được tạo và xử lý gửi đồng bộ (status SENT/FAILED reflects ngay)
           content:
             application/json:
               schema:
