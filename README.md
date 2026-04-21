@@ -90,7 +90,7 @@ graph LR
 4. **Truy cập ứng dụng**:
    - **Frontend**: [http://localhost:5173](http://localhost:5173)
    - **API Gateway**: [http://localhost:5000](http://localhost:5000)
-   - **Temporal Web UI**: [http://localhost:8233](http://localhost:8233) (theo dõi `BookingWorkflow`)
+   - **Temporal Web UI**: [http://localhost:8088](http://localhost:8088) (theo dõi `BookingWorkflow`)
 
 ### Verify
 
