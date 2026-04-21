@@ -4,9 +4,9 @@
 
 | Name | Student ID | Role | Contribution |
 |------|------------|------|--------------|
-| Thành Viên 1 | — | Trưởng nhóm | • Phân tích và thiết kế hệ thống <br> • Implement User Service, Authentication Service, Notification Service và Gateway |
-| Thành Viên 2 | — | Thành viên | • Phân tích và thiết kế hệ thống <br> • Implement Movie Service, Voucher Service |
-| Thành Viên 3 | — | Thành viên | • Phân tích và thiết kế hệ thống <br> • Implement Payment Service, Booking Service (Temporal saga orchestrator) |
+| Nguyễn Thị Tú Anh | B22DCCN034 | Trưởng nhóm | • Phân tích và thiết kế hệ thống <br> • Implement User Service, Authentication Service, Notification Service và Gateway |
+| Lưu Minh Báu | B22DCCN071 | Thành viên | • Phân tích và thiết kế hệ thống <br> • Implement Movie Service, Voucher Service |
+| Ngô Đức Sơn | B22DCCN693 | Thành viên | • Phân tích và thiết kế hệ thống <br> • Implement Payment Service, Booking Service (Temporal saga orchestrator) |
 
 ## Business Process
 
